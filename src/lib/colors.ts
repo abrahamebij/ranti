@@ -3,7 +3,7 @@
  *  All className usage must still use the semantic Tailwind utilities.
  */
 export const colors = {
-  background: '#F2F2F2',
+  background: '#F8F8F8',
   surface: '#FFFFFF',
   surfaceMuted: '#E3E5DD',
   primary: '#2D5447',
