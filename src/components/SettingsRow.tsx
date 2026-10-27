@@ -1,6 +1,6 @@
 import React, { type ComponentProps } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@react-native-vector-icons/ionicons/static';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { colors } from '../lib/colors';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];

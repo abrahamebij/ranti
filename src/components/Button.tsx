@@ -6,7 +6,7 @@ import {
   View,
   type TouchableOpacityProps,
 } from 'react-native';
-import { Ionicons } from '@react-native-vector-icons/ionicons/static';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { colors } from '../lib/colors';
 
 type Variant = 'primary' | 'outline' | 'ghost';
