@@ -1,2 +1,29 @@
 @import "tailwindcss";
 @import "uniwind";
+
+@theme {
+  /* Backgrounds */
+  --color-background: #ECEDE6;
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #E3E5DD;
+
+  /* Brand / Primary */
+  --color-primary: #2D5447;
+  --color-primary-foreground: #FFFFFF;
+
+  /* Typography */
+  --color-foreground: #1A1A1A;
+  --color-foreground-secondary: #555A50;
+  --color-muted: #8A8F84;
+
+  /* UI chrome */
+  --color-border: #D3D6CD;
+  --color-input: #F0F1EA;
+
+  /* Tags / chips */
+  --color-tag-bg: #DDE0D6;
+  --color-tag-text: #374038;
+
+  /* Status */
+  --color-active-dot: #4A8C6B;
+}
