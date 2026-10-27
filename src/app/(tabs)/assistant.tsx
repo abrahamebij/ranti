@@ -1,27 +1,39 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@react-native-vector-icons/ionicons';
-import { colors } from '../../lib/colors';
+import { Ionicons } from "@react-native-vector-icons/ionicons";
+import { useState } from "react";
+import {
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { colors } from "../../lib/colors";
 
-const SUGGESTIONS = [
-  'What do I need to do today?',
-  'What does Maya like?',
-];
+const SUGGESTIONS = ["What do I need to do today?", "What does Maya like?"];
 
 export default function AssistantScreen() {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: colors.background, paddingTop: 8 }}
+      edges={["top"]}
+    >
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 pt-2 pb-3">
         <View>
           <Text className="text-2xl font-bold text-foreground">Ranti</Text>
-          <Text className="text-sm text-foreground-secondary">A little help remembering.</Text>
+          <Text className="text-sm text-foreground-secondary">
+            A little help remembering.
+          </Text>
         </View>
         <TouchableOpacity activeOpacity={0.7}>
-          <Ionicons name="ellipsis-horizontal" size={22} color={colors.foreground} />
+          <Ionicons
+            name="ellipsis-horizontal"
+            size={22}
+            color={colors.foreground}
+          />
         </TouchableOpacity>
       </View>
 
@@ -30,8 +42,12 @@ export default function AssistantScreen() {
         <View className="flex-row items-center gap-2">
           <View className="w-2 h-2 rounded-full bg-active-dot" />
           <View>
-            <Text className="text-sm font-semibold text-primary">Background listening on</Text>
-            <Text className="text-xs text-muted">Saving moments as you go.</Text>
+            <Text className="text-sm font-semibold text-primary">
+              Background listening on
+            </Text>
+            <Text className="text-xs text-muted">
+              Saving moments as you go.
+            </Text>
           </View>
         </View>
         <TouchableOpacity
@@ -42,29 +58,43 @@ export default function AssistantScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20 }}>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 20 }}
+      >
         {/* Timestamp */}
-        <Text className="text-xs text-muted text-center mb-3">Today, 9:40 AM</Text>
+        <Text className="text-xs text-muted text-center mb-3">
+          Today, 9:40 AM
+        </Text>
 
         {/* User message bubble */}
         <View className="items-end mb-4">
           <View className="bg-surface-muted rounded-2xl rounded-tr-sm px-4 py-3 max-w-[80%]">
-            <Text className="text-sm text-foreground">When is lunch with Maya?</Text>
+            <Text className="text-sm text-foreground">
+              When is lunch with Maya?
+            </Text>
           </View>
         </View>
 
         {/* Ranti response */}
         <View className="mb-6">
-          <Text className="text-xs font-semibold text-foreground mb-1">Ranti</Text>
+          <Text className="text-xs font-semibold text-foreground mb-1">
+            Ranti
+          </Text>
           <Text className="text-2xl font-bold text-foreground leading-tight mb-1">
-            Tomorrow at 12:30 PM,{'\n'}at Olive Café.
+            Tomorrow at 12:30 PM,{"\n"}at Olive Café.
           </Text>
           <Text className="text-sm text-foreground-secondary mb-3">
             You're bringing the book you borrowed.
           </Text>
-          <TouchableOpacity activeOpacity={0.7} className="flex-row items-center gap-1">
+          <TouchableOpacity
+            activeOpacity={0.7}
+            className="flex-row items-center gap-1"
+          >
             <Ionicons name="layers-outline" size={14} color={colors.primary} />
-            <Text className="text-sm text-primary font-medium">From Lunch with Maya</Text>
+            <Text className="text-sm text-primary font-medium">
+              From Lunch with Maya
+            </Text>
             <Ionicons name="chevron-forward" size={14} color={colors.primary} />
           </TouchableOpacity>
         </View>
@@ -78,7 +108,11 @@ export default function AssistantScreen() {
               className="flex-row items-center justify-between py-3"
             >
               <Text className="text-sm text-foreground">{s}</Text>
-              <Ionicons name="return-up-back-outline" size={16} color={colors.muted} />
+              <Ionicons
+                name="return-up-back-outline"
+                size={16}
+                color={colors.muted}
+              />
             </TouchableOpacity>
             <View className="h-px bg-border" />
           </View>

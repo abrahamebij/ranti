@@ -25,7 +25,9 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaProvider
+      style={{ flex: 1, backgroundColor: colors.background, paddingTop: 8 }}
+    >
       <StatusBar style="light" />
       <Stack
         screenOptions={{

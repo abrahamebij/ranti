@@ -1,19 +1,24 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { Ionicons } from '@react-native-vector-icons/ionicons';
-import { Button } from '../components/Button';
-import { Card } from '../components/Card';
-import { colors } from '../lib/colors';
+import { Ionicons } from "@react-native-vector-icons/ionicons";
+import { router } from "expo-router";
+import { useState } from "react";
+import { Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Button } from "../components/Button";
+import { Card } from "../components/Card";
+import { colors } from "../lib/colors";
 
-const WAVEFORM_BARS = [4, 10, 18, 12, 24, 16, 30, 20, 14, 26, 18, 32, 22, 16, 10, 24, 20, 14, 8, 18, 22, 16, 20, 12, 14];
+const WAVEFORM_BARS = [
+  4, 10, 18, 12, 24, 16, 30, 20, 14, 26, 18, 32, 22, 16, 10, 24, 20, 14, 8, 18,
+  22, 16, 20, 12, 14,
+];
 
 export default function VoiceSetupScreen() {
   const [recorded, setRecorded] = useState(true);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: colors.background, paddingTop: 8 }}
+    >
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 py-3">
         <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
@@ -30,7 +35,7 @@ export default function VoiceSetupScreen() {
       <View className="flex-1 px-6 pt-8">
         {/* Heading */}
         <Text className="text-4xl font-bold text-foreground leading-tight mb-3">
-          Let's get to know{'\n'}your voice.
+          Let's get to know{"\n"}your voice.
         </Text>
         <Text className="text-sm text-foreground-secondary mb-10">
           Read the line below to record a short sample.
@@ -42,7 +47,7 @@ export default function VoiceSetupScreen() {
             SAY SOMETHING SIMPLE
           </Text>
           <Text className="text-lg font-medium text-foreground mb-6 leading-snug">
-            "Hi Ranti, help me remember{'\n'}what matters."
+            "Hi Ranti, help me remember{"\n"}what matters."
           </Text>
 
           {/* Waveform */}
@@ -50,7 +55,12 @@ export default function VoiceSetupScreen() {
             {WAVEFORM_BARS.map((h, i) => (
               <View
                 key={i}
-                style={{ height: h, width: 3, borderRadius: 2, backgroundColor: colors.primary }}
+                style={{
+                  height: h,
+                  width: 3,
+                  borderRadius: 2,
+                  backgroundColor: colors.primary,
+                }}
               />
             ))}
           </View>
@@ -58,8 +68,14 @@ export default function VoiceSetupScreen() {
           {/* Sample saved */}
           {recorded && (
             <View className="flex-row items-center justify-center gap-2">
-              <Ionicons name="checkmark-circle-outline" size={16} color={colors.foregroundSecondary} />
-              <Text className="text-xs text-foreground-secondary">Sample saved · 0:08</Text>
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={16}
+                color={colors.foregroundSecondary}
+              />
+              <Text className="text-xs text-foreground-secondary">
+                Sample saved · 0:08
+              </Text>
             </View>
           )}
         </Card>
@@ -83,7 +99,7 @@ export default function VoiceSetupScreen() {
           label="Continue"
           icon="arrow-forward"
           iconPosition="right"
-          onPress={() => router.replace('/(tabs)/assistant')}
+          onPress={() => router.replace("/(tabs)/assistant")}
         />
       </View>
     </SafeAreaView>

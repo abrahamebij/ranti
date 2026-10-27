@@ -1,69 +1,74 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@react-native-vector-icons/ionicons';
-import { router } from 'expo-router';
-import { FilterPill } from '../../../components/FilterPill';
-import { MemoryListItem } from '../../../components/MemoryListItem';
-import { colors } from '../../../lib/colors';
+import { Ionicons } from "@react-native-vector-icons/ionicons";
+import { router } from "expo-router";
+import { useState } from "react";
+import { ScrollView, Text, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { FilterPill } from "../../../components/FilterPill";
+import { MemoryListItem } from "../../../components/MemoryListItem";
+import { colors } from "../../../lib/colors";
 
-type Filter = 'All' | 'People' | 'Plans' | 'Notes';
-const FILTERS: Filter[] = ['All', 'People', 'Plans', 'Notes'];
+type Filter = "All" | "People" | "Plans" | "Notes";
+const FILTERS: Filter[] = ["All", "People", "Plans", "Notes"];
 
 const MEMORIES = [
   {
-    id: '1',
-    category: 'Plans',
-    title: 'Lunch with Maya',
-    preview: 'Oct 28, 12:30 PM at Olive Café. Bring the book you borrowed.',
-    date: 'Oct 26',
-    filter: 'Plans' as Filter,
+    id: "1",
+    category: "Plans",
+    title: "Lunch with Maya",
+    preview: "Oct 28, 12:30 PM at Olive Café. Bring the book you borrowed.",
+    date: "Oct 26",
+    filter: "Plans" as Filter,
   },
   {
-    id: '2',
-    category: 'People',
+    id: "2",
+    category: "People",
     title: "Maya's coffee order",
-    preview: 'Oat flat white, no sugar.',
-    date: 'Oct 26',
-    filter: 'People' as Filter,
+    preview: "Oat flat white, no sugar.",
+    date: "Oct 26",
+    filter: "People" as Filter,
   },
   {
-    id: '3',
-    category: 'Notes',
-    title: 'Spare keys',
-    preview: 'In the small bowl by the front door.',
-    date: 'Oct 25',
-    filter: 'Notes' as Filter,
+    id: "3",
+    category: "Notes",
+    title: "Spare keys",
+    preview: "In the small bowl by the front door.",
+    date: "Oct 25",
+    filter: "Notes" as Filter,
   },
   {
-    id: '4',
-    category: 'People',
+    id: "4",
+    category: "People",
     title: "Dad's birthday idea",
-    preview: 'He mentioned a book about gardens.',
-    date: 'Oct 24',
-    filter: 'People' as Filter,
+    preview: "He mentioned a book about gardens.",
+    date: "Oct 24",
+    filter: "People" as Filter,
   },
 ];
 
 export default function MemoriesScreen() {
-  const [activeFilter, setActiveFilter] = useState<Filter>('All');
-  const [search, setSearch] = useState('');
+  const [activeFilter, setActiveFilter] = useState<Filter>("All");
+  const [search, setSearch] = useState("");
 
   const filtered = MEMORIES.filter((m) => {
-    const matchesFilter = activeFilter === 'All' || m.filter === activeFilter;
+    const matchesFilter = activeFilter === "All" || m.filter === activeFilter;
     const matchesSearch =
-      search.trim() === '' ||
+      search.trim() === "" ||
       m.title.toLowerCase().includes(search.toLowerCase()) ||
       m.preview.toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: colors.background, paddingTop: 8 }}
+      edges={["top"]}
+    >
       {/* Header */}
       <View className="px-5 pt-2 pb-4">
         <Text className="text-3xl font-bold text-foreground">Memories</Text>
-        <Text className="text-sm text-foreground-secondary mt-1">The little things, kept for you.</Text>
+        <Text className="text-sm text-foreground-secondary mt-1">
+          The little things, kept for you.
+        </Text>
       </View>
 
       {/* Search */}
@@ -96,7 +101,10 @@ export default function MemoriesScreen() {
         <Text className="text-sm text-muted">Newest first</Text>
       </View>
 
-      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView
+        className="flex-1 px-5"
+        contentContainerStyle={{ paddingBottom: 24 }}
+      >
         {filtered.map((m) => (
           <MemoryListItem
             key={m.id}

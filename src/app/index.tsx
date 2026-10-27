@@ -7,7 +7,9 @@ import { colors } from "../lib/colors";
 
 export default function WelcomeScreen() {
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: colors.background, paddingTop: 8 }}
+    >
       <View className="flex-1 px-6">
         {/* Top tagline */}
         <Text className="text-sm text-foreground-secondary mt-4">
