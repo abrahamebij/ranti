@@ -38,7 +38,7 @@ export default function AssistantScreen() {
       </View>
 
       {/* Listening banner */}
-      <View className="mx-5 mb-4 bg-surface rounded-xl px-4 py-3 flex-row items-center justify-between">
+      {/* <View className="mx-5 mb-4 bg-surface rounded-xl px-4 py-3 flex-row items-center justify-between">
         <View className="flex-row items-center gap-2">
           <View className="w-2 h-2 rounded-full bg-active-dot" />
           <View>
@@ -56,7 +56,7 @@ export default function AssistantScreen() {
         >
           <Text className="text-sm font-medium text-foreground">Stop</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       <ScrollView
         className="flex-1"

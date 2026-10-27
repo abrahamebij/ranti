@@ -5,8 +5,8 @@
 export const colors = {
   background: '#F8F8F8',
   surface: '#FFFFFF',
-  surfaceMuted: '#E3E5DD',
-  primary: '#2D5447',
+  surfaceMuted: '#eff3ed',
+  primary: '#166e3d',
   primaryForeground: '#FFFFFF',
   foreground: '#1A1A1A',
   foregroundSecondary: '#555A50',
