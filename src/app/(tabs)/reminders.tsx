@@ -9,21 +9,26 @@ import { colors } from "../../lib/colors";
 
 type Filter = "All" | "Upcoming" | "Completed";
 const FILTERS: Filter[] = ["All", "Upcoming", "Completed"];
+const DATE_PRESETS = ["Today", "Tomorrow", "Next week"];
 
 export default function RemindersScreen() {
   const [activeFilter, setActiveFilter] = useState<Filter>("All");
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [newDate, setNewDate] = useState("");
   const { tasks, toggleTask, addTask } = useTasks(activeFilter);
 
   const handleSaveReminder = async () => {
     const title = newTitle.trim();
     if (!title) return;
+    const dateVal = newDate.trim();
     setNewTitle("");
+    setNewDate("");
     setIsAdding(false);
     await addTask({
       title,
-      time: "Scheduled",
+      time: dateVal || "Scheduled",
+      dueAt: dateVal || undefined,
       completed: false,
     });
   };
@@ -64,7 +69,7 @@ export default function RemindersScreen() {
             <Text className="text-xs text-muted">{tasks.length} items</Text>
           </View>
 
-          {/* Creation card */}
+          {/* Creation card with date field */}
           {isAdding && (
             <View className="bg-surface rounded-2xl p-4 mb-4 border border-border">
               <Text className="text-sm font-semibold text-foreground mb-2">
@@ -73,18 +78,44 @@ export default function RemindersScreen() {
               <TextInput
                 value={newTitle}
                 onChangeText={setNewTitle}
-                onSubmitEditing={handleSaveReminder}
-                returnKeyType="done"
                 placeholder="What do you need to remember?"
                 placeholderTextColor={colors.muted}
-                className="bg-input rounded-xl px-3 py-2 text-sm text-foreground mb-3"
+                className="bg-input rounded-xl px-3 py-2 text-sm text-foreground mb-2"
                 autoFocus
               />
+              <TextInput
+                value={newDate}
+                onChangeText={setNewDate}
+                onSubmitEditing={handleSaveReminder}
+                returnKeyType="done"
+                placeholder="Date or time (e.g. Tomorrow, 5:30 PM)"
+                placeholderTextColor={colors.muted}
+                className="bg-input rounded-xl px-3 py-2 text-sm text-foreground mb-2"
+              />
+              {/* Quick date presets */}
+              <View className="flex-row gap-2 mb-3">
+                {DATE_PRESETS.map((preset) => (
+                  <TouchableOpacity
+                    key={preset}
+                    onPress={() => setNewDate(preset)}
+                    className={`px-3 py-1 rounded-full border ${
+                      newDate === preset
+                        ? "bg-tag-bg border-tag-bg"
+                        : "border-border"
+                    }`}
+                  >
+                    <Text className="text-xs text-foreground-secondary">
+                      {preset}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
               <View className="flex-row gap-2 justify-end">
                 <TouchableOpacity
                   onPress={() => {
                     setIsAdding(false);
                     setNewTitle("");
+                    setNewDate("");
                   }}
                   className="px-4 py-2 rounded-full"
                 >

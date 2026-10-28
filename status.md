@@ -12,7 +12,8 @@ Last Updated: 2026-10-28
 
 ## 2. Completed Architecture & Milestones
 
-### A. Optimistic UI Experience
+### A. Reminders & Tasks Feature
+- [x] **Date / Time Field:** Added date/time input to the "New Reminder" form with quick-select pills ("Today", "Tomorrow", "Next week").
 - [x] **Instant Check / Uncheck:** In [`src/hooks/useTasks.ts`](file:///c:/Users/Abraham/Desktop/Projects/ranti/src/hooks/useTasks.ts), checking or unchecking a reminder optimistically toggles the checkbox and line-through immediately with zero latency using React Query `onMutate` cache updates and rollback on error.
 - [x] **Instant Task Creation:** When saving a reminder, `addTask` inserts the item optimistically into the cache before awaiting the Firestore network response.
 
@@ -32,7 +33,7 @@ Last Updated: 2026-10-28
 - [x] **Today Dashboard (`src/app/(tabs)/today.tsx`):** Real-time task checklist, Up Next card, and database memories with clean empty states.
 - [x] **Memories Library (`src/app/(tabs)/memories/index.tsx`):** Search and filter pills backed by database query.
 - [x] **Memory Detail (`src/app/(tabs)/memories/[id].tsx`):** Renders specific database record with not-found guard.
-- [x] **Reminders Screen (`src/app/(tabs)/reminders.tsx`):** Filter tabs, database task checklist, and interactive reminder creation.
+- [x] **Reminders Screen (`src/app/(tabs)/reminders.tsx`):** Filter tabs, database task checklist, date/time input with quick presets, and interactive reminder creation.
 - [x] **Settings Screen (`src/app/(tabs)/settings.tsx`):** Profile card, custom Material-3 switch components.
 - [x] **Root Layout (`src/app/_layout.tsx`):** QueryClientProvider, vector icon font preloader, safe-area configuration.
 
