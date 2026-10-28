@@ -6,14 +6,13 @@ Last Updated: 2026-10-28
 - **App:** Ranti — AI-powered personal memory assistant for people experiencing memory difficulties.
 - **Platform:** Android-first, Expo SDK 57 / React Native 0.86 with Expo Router.
 - **Data Policy:** 100% Database-Driven via official Firebase JS SDK (`firebase/app` and `firebase/firestore`).
-- **UI Policy:** Full Optimistic UI for immediate native-speed responsiveness.
+- **UI Policy:** Optimistic UI for instant task completion toggling and task creation.
 
 ---
 
 ## 2. Completed Architecture & Milestones
 
 ### A. Optimistic UI Experience
-- [x] **Live Typing Draft Preview:** In [`src/app/(tabs)/reminders.tsx`](file:///c:/Users/Abraham/Desktop/Projects/ranti/src/app/(tabs)/reminders.tsx), as the user types a new reminder, an optimistic preview row updates in real time right in the task list.
 - [x] **Instant Check / Uncheck:** In [`src/hooks/useTasks.ts`](file:///c:/Users/Abraham/Desktop/Projects/ranti/src/hooks/useTasks.ts), checking or unchecking a reminder optimistically toggles the checkbox and line-through immediately with zero latency using React Query `onMutate` cache updates and rollback on error.
 - [x] **Instant Task Creation:** When saving a reminder, `addTask` inserts the item optimistically into the cache before awaiting the Firestore network response.
 
@@ -33,7 +32,7 @@ Last Updated: 2026-10-28
 - [x] **Today Dashboard (`src/app/(tabs)/today.tsx`):** Real-time task checklist, Up Next card, and database memories with clean empty states.
 - [x] **Memories Library (`src/app/(tabs)/memories/index.tsx`):** Search and filter pills backed by database query.
 - [x] **Memory Detail (`src/app/(tabs)/memories/[id].tsx`):** Renders specific database record with not-found guard.
-- [x] **Reminders Screen (`src/app/(tabs)/reminders.tsx`):** Filter tabs, database task checklist, optimistic typing preview, and interactive reminder creation.
+- [x] **Reminders Screen (`src/app/(tabs)/reminders.tsx`):** Filter tabs, database task checklist, and interactive reminder creation.
 - [x] **Settings Screen (`src/app/(tabs)/settings.tsx`):** Profile card, custom Material-3 switch components.
 - [x] **Root Layout (`src/app/_layout.tsx`):** QueryClientProvider, vector icon font preloader, safe-area configuration.
 

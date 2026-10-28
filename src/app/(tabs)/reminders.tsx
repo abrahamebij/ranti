@@ -61,9 +61,7 @@ export default function RemindersScreen() {
             <Text className="text-sm font-semibold text-foreground">
               {activeFilter === "All" ? "All Tasks" : activeFilter}
             </Text>
-            <Text className="text-xs text-muted">
-              {tasks.length + (isAdding && newTitle.trim() ? 1 : 0)} items
-            </Text>
+            <Text className="text-xs text-muted">{tasks.length} items</Text>
           </View>
 
           {/* Creation card */}
@@ -107,24 +105,6 @@ export default function RemindersScreen() {
             </View>
           )}
 
-          {/* Optimistic Live Preview while user is typing */}
-          {isAdding && newTitle.trim().length > 0 && activeFilter !== "Completed" && (
-            <View className="mb-2 opacity-75">
-              <View className="flex-row items-center py-3 gap-3 border-b border-dashed border-primary">
-                <View className="w-6 h-6 rounded-full border-2 border-dashed border-primary items-center justify-center" />
-                <View className="flex-1">
-                  <Text className="text-sm font-medium text-foreground">
-                    {newTitle}
-                  </Text>
-                  <Text className="text-xs text-primary mt-0.5">
-                    Typing new reminder...
-                  </Text>
-                </View>
-                <Text className="text-xs text-muted">Draft</Text>
-              </View>
-            </View>
-          )}
-
           {/* Actual tasks list with optimistic check/uncheck */}
           {tasks.map((task, i) => (
             <TaskItem
@@ -138,7 +118,7 @@ export default function RemindersScreen() {
             />
           ))}
 
-          {tasks.length === 0 && (!isAdding || !newTitle.trim()) && (
+          {tasks.length === 0 && !isAdding && (
             <Text className="text-sm text-muted py-8 text-center">
               No {activeFilter.toLowerCase()} tasks found in your database.
             </Text>
