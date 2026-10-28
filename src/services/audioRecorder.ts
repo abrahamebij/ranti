@@ -1,45 +1,17 @@
 /**
- * Audio Recording & Speech Segmentation Engine.
- * Manages audio capture sessions and delivers segmented speech clips
- * to the transcription pipeline (muse-voice-transcribe-1.0).
+ * Audio segment descriptor emitted after each rolling recording window.
  */
-
 export interface AudioSegment {
   uri: string;
   durationMs: number;
   timestamp: string;
 }
 
-type SegmentCallback = (segment: AudioSegment) => void;
+/** Rolling window duration in milliseconds. */
+export const SEGMENT_DURATION_MS = 30_000;
 
-class AudioRecorderService {
-  private recording: boolean = false;
-  private listeners: Set<SegmentCallback> = new Set();
-
-  isRecording(): boolean {
-    return this.recording;
-  }
-
-  onSegment(callback: SegmentCallback): () => void {
-    this.listeners.add(callback);
-    return () => this.listeners.delete(callback);
-  }
-
-  async startListening(): Promise<boolean> {
-    this.recording = true;
-    return true;
-  }
-
-  async stopListening(): Promise<void> {
-    this.recording = false;
-  }
-
-  emitSegment(segment: AudioSegment): void {
-    if (!this.recording) return;
-    for (const listener of this.listeners) {
-      listener(segment);
-    }
-  }
-}
-
-export const audioRecorder = new AudioRecorderService();
+/**
+ * Minimum file size to consider a segment non-silent.
+ * Segments below this threshold are discarded without transcription.
+ */
+export const MIN_SEGMENT_BYTES = 2_048;

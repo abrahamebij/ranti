@@ -1,6 +1,6 @@
 # Ranti — Project Status
 
-Last Updated: 2026-10-28
+Last Updated: 2026-10-28T10:15:00+01:00
 
 ## 1. Project Overview & Target
 - **App:** Ranti — AI-powered personal memory assistant for people experiencing memory difficulties.
@@ -12,8 +12,15 @@ Last Updated: 2026-10-28
 
 ## 2. Completed Architecture & Milestones
 
-### A. Reminders & Tasks Feature
-- [x] **Date / Time Field:** Added date/time input to the "New Reminder" form with quick-select pills ("Today", "Tomorrow", "Next week").
+### A. Listening & Audio Pipeline (Phase 2 complete)
+- [x] **Real ambient recording (`src/hooks/useListeningSession.ts`):** Uses `expo-audio` (`useAudioRecorder`, `requestRecordingPermissionsAsync`, `RecordingPresets`). Rolling 30s segments — stops current, starts next immediately with no gap. Last partial segment emitted on stop.
+- [x] **Silent chunk discard:** Each segment is checked via HTTP HEAD for Content-Length. Chunks under 2KB are dropped before hitting the transcription API.
+- [x] **Permissions:** `requestRecordingPermissionsAsync()` called before first record. `app.json` configured with `expo-audio` plugin + `recordAudioAndroid: true`.
+- [x] **Pipeline guard:** `processingRef` prevents queue buildup — new segments are dropped if the previous transcription+extraction cycle is still running.
+- [x] **`audioRecorder.ts` simplified:** Now just exports `AudioSegment` type + constants (`SEGMENT_DURATION_MS`, `MIN_SEGMENT_BYTES`). Logic lives in `useListeningSession`.
+
+### B. Reminders & Tasks Feature
+- [x] **Native Date / Time Picker:** Replaced free-text date input with `@react-native-community/datetimepicker` (v9.1.0). Tapping "Set date & time" opens the Android `DatePickerDialog`, then auto-transitions to `TimePickerDialog`. Quick-select preset pills ("Today", "Tomorrow", "Next week") set a `Date` at 9 AM on the respective day and highlight when active. Save stores `time` as a human-readable string (e.g. `Tue, Oct 29 · 5:30 PM`) and `dueAt` as an ISO timestamp in Firestore.
 - [x] **Instant Check / Uncheck:** In [`src/hooks/useTasks.ts`](file:///c:/Users/Abraham/Desktop/Projects/ranti/src/hooks/useTasks.ts), checking or unchecking a reminder optimistically toggles the checkbox and line-through immediately with zero latency using React Query `onMutate` cache updates and rollback on error.
 - [x] **Instant Task Creation:** When saving a reminder, `addTask` inserts the item optimistically into the cache before awaiting the Firestore network response.
 
