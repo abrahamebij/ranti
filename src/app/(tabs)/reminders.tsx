@@ -19,13 +19,13 @@ export default function RemindersScreen() {
   const handleSaveReminder = async () => {
     const title = newTitle.trim();
     if (!title) return;
+    setNewTitle("");
+    setIsAdding(false);
     await addTask({
       title,
       time: "Scheduled",
       completed: false,
     });
-    setNewTitle("");
-    setIsAdding(false);
   };
 
   return (
@@ -61,9 +61,12 @@ export default function RemindersScreen() {
             <Text className="text-sm font-semibold text-foreground">
               {activeFilter === "All" ? "All Tasks" : activeFilter}
             </Text>
-            <Text className="text-xs text-muted">{tasks.length} items</Text>
+            <Text className="text-xs text-muted">
+              {tasks.length + (isAdding && newTitle.trim() ? 1 : 0)} items
+            </Text>
           </View>
 
+          {/* Creation card */}
           {isAdding && (
             <View className="bg-surface rounded-2xl p-4 mb-4 border border-border">
               <Text className="text-sm font-semibold text-foreground mb-2">
@@ -72,6 +75,8 @@ export default function RemindersScreen() {
               <TextInput
                 value={newTitle}
                 onChangeText={setNewTitle}
+                onSubmitEditing={handleSaveReminder}
+                returnKeyType="done"
                 placeholder="What do you need to remember?"
                 placeholderTextColor={colors.muted}
                 className="bg-input rounded-xl px-3 py-2 text-sm text-foreground mb-3"
@@ -79,14 +84,20 @@ export default function RemindersScreen() {
               />
               <View className="flex-row gap-2 justify-end">
                 <TouchableOpacity
-                  onPress={() => setIsAdding(false)}
+                  onPress={() => {
+                    setIsAdding(false);
+                    setNewTitle("");
+                  }}
                   className="px-4 py-2 rounded-full"
                 >
                   <Text className="text-sm text-muted">Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleSaveReminder}
-                  className="bg-primary px-4 py-2 rounded-full"
+                  disabled={!newTitle.trim()}
+                  className={`bg-primary px-4 py-2 rounded-full ${
+                    !newTitle.trim() ? "opacity-50" : ""
+                  }`}
                 >
                   <Text className="text-sm text-primary-foreground font-medium">
                     Save
@@ -96,6 +107,25 @@ export default function RemindersScreen() {
             </View>
           )}
 
+          {/* Optimistic Live Preview while user is typing */}
+          {isAdding && newTitle.trim().length > 0 && activeFilter !== "Completed" && (
+            <View className="mb-2 opacity-75">
+              <View className="flex-row items-center py-3 gap-3 border-b border-dashed border-primary">
+                <View className="w-6 h-6 rounded-full border-2 border-dashed border-primary items-center justify-center" />
+                <View className="flex-1">
+                  <Text className="text-sm font-medium text-foreground">
+                    {newTitle}
+                  </Text>
+                  <Text className="text-xs text-primary mt-0.5">
+                    Typing new reminder...
+                  </Text>
+                </View>
+                <Text className="text-xs text-muted">Draft</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Actual tasks list with optimistic check/uncheck */}
           {tasks.map((task, i) => (
             <TaskItem
               key={task.id}
@@ -108,7 +138,7 @@ export default function RemindersScreen() {
             />
           ))}
 
-          {tasks.length === 0 && !isAdding && (
+          {tasks.length === 0 && (!isAdding || !newTitle.trim()) && (
             <Text className="text-sm text-muted py-8 text-center">
               No {activeFilter.toLowerCase()} tasks found in your database.
             </Text>

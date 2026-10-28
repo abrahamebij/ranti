@@ -4,6 +4,10 @@ import { Task } from '../types';
 
 export const TASKS_QUERY_KEY = ['tasks'];
 
+interface MutationContext {
+  previousTasks?: Task[];
+}
+
 export function useTasks(filter?: 'All' | 'Upcoming' | 'Completed') {
   const queryClient = useQueryClient();
 
@@ -12,17 +16,69 @@ export function useTasks(filter?: 'All' | 'Upcoming' | 'Completed') {
     queryFn: () => storageService.getTasks(),
   });
 
-  const toggleTaskMutation = useMutation({
+  // Optimistic Toggle Task (immediate check/uncheck)
+  const toggleTaskMutation = useMutation<Task[], Error, string, MutationContext>({
     mutationFn: (taskId: string) => storageService.toggleTask(taskId),
-    onSuccess: () => {
+    onMutate: async (taskId: string) => {
+      // 1. Cancel any outgoing refetches so they don't overwrite optimistic update
+      await queryClient.cancelQueries({ queryKey: TASKS_QUERY_KEY });
+
+      // 2. Snapshot previous value
+      const previousTasks = queryClient.getQueryData<Task[]>(TASKS_QUERY_KEY);
+
+      // 3. Optimistically toggle the task in cache
+      queryClient.setQueryData<Task[]>(TASKS_QUERY_KEY, (old = []) =>
+        old.map((t) =>
+          t.id === taskId ? { ...t, completed: !t.completed } : t
+        )
+      );
+
+      return { previousTasks };
+    },
+    onError: (_err, _taskId, context) => {
+      // Rollback on error
+      if (context?.previousTasks) {
+        queryClient.setQueryData(TASKS_QUERY_KEY, context.previousTasks);
+      }
+    },
+    onSettled: () => {
+      // Always sync with server in background
       queryClient.invalidateQueries({ queryKey: TASKS_QUERY_KEY });
     },
   });
 
-  const addTaskMutation = useMutation({
-    mutationFn: (newTask: Omit<Task, 'id' | 'createdAt' | 'userId'>) =>
-      storageService.addTask(newTask),
-    onSuccess: () => {
+  // Optimistic Add Task (immediate appearance on save)
+  const addTaskMutation = useMutation<
+    Task,
+    Error,
+    Omit<Task, 'id' | 'createdAt' | 'userId'>,
+    MutationContext
+  >({
+    mutationFn: (newTask) => storageService.addTask(newTask),
+    onMutate: async (newTask) => {
+      await queryClient.cancelQueries({ queryKey: TASKS_QUERY_KEY });
+      const previousTasks = queryClient.getQueryData<Task[]>(TASKS_QUERY_KEY);
+
+      const optimisticTask: Task = {
+        ...newTask,
+        id: `optimistic-${Date.now()}`,
+        userId: 'current-user',
+        createdAt: new Date().toISOString(),
+      };
+
+      queryClient.setQueryData<Task[]>(TASKS_QUERY_KEY, (old = []) => [
+        optimisticTask,
+        ...old,
+      ]);
+
+      return { previousTasks };
+    },
+    onError: (_err, _newTask, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(TASKS_QUERY_KEY, context.previousTasks);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: TASKS_QUERY_KEY });
     },
   });
@@ -42,5 +98,6 @@ export function useTasks(filter?: 'All' | 'Upcoming' | 'Completed') {
     toggleTask: toggleTaskMutation.mutate,
     addTask: addTaskMutation.mutateAsync,
     isToggling: toggleTaskMutation.isPending,
+    isAdding: addTaskMutation.isPending,
   };
 }
