@@ -5,7 +5,7 @@ Last Updated: 2026-10-28
 ## 1. Project Overview & Target
 - **App:** Ranti — AI-powered personal memory assistant for people experiencing memory difficulties.
 - **Platform:** Android-first, Expo SDK 57 / React Native 0.86 with Expo Router.
-- **Data Policy:** 100% Database-Driven. All mock data, hardcoded fallbacks, and dummy arrays have been removed.
+- **Data Policy:** 100% Database-Driven. Integrated with the official Firebase JS SDK (`firebase/app` and `firebase/firestore`).
 
 ---
 
@@ -15,9 +15,9 @@ Last Updated: 2026-10-28
 - [x] **Dotenv Configuration:** Sensitive credentials (`EXPO_PUBLIC_FIREBASE_*`, `EXPO_PUBLIC_META_API_*`) configured strictly via `.env` / `.env.example`.
 - [x] **Git Safety:** Updated `.gitignore` to strictly exclude all `.env*` files.
 
-### B. Direct Database & Services (No Mocks)
-- [x] **Zero Mock Storage (`src/services/storage.ts`):** All queries and mutations route directly through `firestoreRest` into the Cloud Firestore `users/{userId}/...` collections.
-- [x] **Direct Cloud Firestore REST Sync (`src/services/firestoreRest.ts`):** Lightweight, zero-overhead Firestore document mapping over HTTPS REST.
+### B. Official Firebase Integration & Services
+- [x] **Official Firebase SDK (`src/services/firebase.ts`):** Initialized via `initializeApp` and `getFirestore` from `firebase/app` and `firebase/firestore`.
+- [x] **Zero Mock Storage (`src/services/storage.ts`):** Directly queries and writes to Cloud Firestore collections (`users/{userId}/memories`, `tasks`, `reminders`, `events`, `chat`) using modular methods (`getDocs`, `addDoc`, `updateDoc`).
 - [x] **Meta AI Gateway (`src/services/metaApi.ts`):** Strict API calls to `muse-voice-transcribe-1.0` (transcription) and `muse-spark-1.3` (context extraction & memory-grounded Q&A recall).
 - [x] **Audio Recording Engine (`src/services/audioRecorder.ts`):** Real audio event listener pipeline with no simulated text chunks.
 - [x] **Reminder Delivery Engine (`src/services/reminderScheduler.ts`):** Android alert notifications and audio earbud delivery for due reminders.
@@ -25,8 +25,8 @@ Last Updated: 2026-10-28
 ### C. State Layer & Custom Hooks
 - [x] **Query Client (`src/services/queryClient.ts`):** React Query root provider setup.
 - [x] **React Query Hooks (`src/hooks/`):**
-  - `useMemories`: Category-filtered retrieval and mutation against database.
-  - `useTasks`: Real-time toggle, creation, and filtering against database.
+  - `useMemories`: Category-filtered retrieval and mutation against Firestore.
+  - `useTasks`: Real-time toggle, creation, and filtering against Firestore.
   - `useChat`: Conversational memory recall grounded exclusively in database records.
   - `useListeningSession`: Start/stop toggle and transcription pipeline.
 
@@ -56,7 +56,7 @@ Last Updated: 2026-10-28
 [muse-spark-1.3]
        │ (extracted structured insights)
        ▼
-[firestoreRest.ts] ──▶ Cloud Firestore (users/{userId}/...)
+[Official Firestore SDK] ──▶ Cloud Firestore (users/{userId}/...)
        │
        ▼
 [React Query Cache Invalidation]

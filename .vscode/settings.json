@@ -34,7 +34,6 @@
     "ListFooterComponentClassName",
     "ListHeaderComponentClassName"
   ],
-  "tailwindCSS.classFunctions": [
-    "useResolveClassNames"
-  ]
+  "tailwindCSS.classFunctions": ["useResolveClassNames"],
+  "cSpell.words": ["firestore"]
 }
