@@ -5,57 +5,25 @@ import { ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FilterPill } from "../../../components/FilterPill";
 import { MemoryListItem } from "../../../components/MemoryListItem";
+import { useMemories } from "../../../hooks/useMemories";
+import { MemoryCategory } from "../../../types";
 import { colors } from "../../../lib/colors";
 
-type Filter = "All" | "People" | "Plans" | "Notes";
+type Filter = "All" | MemoryCategory;
 const FILTERS: Filter[] = ["All", "People", "Plans", "Notes"];
-
-const MEMORIES = [
-  {
-    id: "1",
-    category: "Plans",
-    title: "Lunch with Maya",
-    preview: "Oct 28, 12:30 PM at Olive Café. Bring the book you borrowed.",
-    date: "Oct 26",
-    filter: "Plans" as Filter,
-  },
-  {
-    id: "2",
-    category: "People",
-    title: "Maya's coffee order",
-    preview: "Oat flat white, no sugar.",
-    date: "Oct 26",
-    filter: "People" as Filter,
-  },
-  {
-    id: "3",
-    category: "Notes",
-    title: "Spare keys",
-    preview: "In the small bowl by the front door.",
-    date: "Oct 25",
-    filter: "Notes" as Filter,
-  },
-  {
-    id: "4",
-    category: "People",
-    title: "Dad's birthday idea",
-    preview: "He mentioned a book about gardens.",
-    date: "Oct 24",
-    filter: "People" as Filter,
-  },
-];
 
 export default function MemoriesScreen() {
   const [activeFilter, setActiveFilter] = useState<Filter>("All");
   const [search, setSearch] = useState("");
+  const { memories } = useMemories(activeFilter);
 
-  const filtered = MEMORIES.filter((m) => {
-    const matchesFilter = activeFilter === "All" || m.filter === activeFilter;
-    const matchesSearch =
-      search.trim() === "" ||
-      m.title.toLowerCase().includes(search.toLowerCase()) ||
-      m.preview.toLowerCase().includes(search.toLowerCase());
-    return matchesFilter && matchesSearch;
+  const filtered = memories.filter((m) => {
+    const term = search.trim().toLowerCase();
+    if (!term) return true;
+    return (
+      m.title.toLowerCase().includes(term) ||
+      m.content.toLowerCase().includes(term)
+    );
   });
 
   return (
@@ -105,16 +73,22 @@ export default function MemoriesScreen() {
         className="flex-1 px-5"
         contentContainerStyle={{ paddingBottom: 24 }}
       >
-        {filtered.map((m) => (
-          <MemoryListItem
-            key={m.id}
-            category={m.category}
-            title={m.title}
-            preview={m.preview}
-            date={m.date}
-            onPress={() => router.push(`/(tabs)/memories/${m.id}` as never)}
-          />
-        ))}
+        {filtered.length === 0 ? (
+          <Text className="text-sm text-muted text-center py-10">
+            No memories found in your database.
+          </Text>
+        ) : (
+          filtered.map((m) => (
+            <MemoryListItem
+              key={m.id}
+              category={m.category}
+              title={m.title}
+              preview={m.content}
+              date={m.sourceTimestamp || "Recent"}
+              onPress={() => router.push(`/(tabs)/memories/${m.id}` as never)}
+            />
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
