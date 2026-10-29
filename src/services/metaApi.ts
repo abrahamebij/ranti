@@ -11,6 +11,7 @@
  * meaningful messages to the user. No silent empty-returns.
  */
 
+import * as FileSystem from 'expo-file-system/legacy';
 import { ExtractedInsights, Memory } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -114,13 +115,14 @@ async function metaRequest<T>(
   const rawBody = await res.text();
 
   if (!res.ok) {
-    const code = res.status === 401 || res.status === 403
-      ? 'auth_error'
-      : res.status === 429
-        ? 'rate_limit'
-        : res.status >= 500
-          ? 'server_error'
-          : 'request_error';
+    const code =
+      res.status === 401 || res.status === 403
+        ? 'auth_error'
+        : res.status === 429
+          ? 'rate_limit'
+          : res.status >= 500
+            ? 'server_error'
+            : 'request_error';
 
     throw new MetaApiError(
       `Meta API ${endpoint} returned ${res.status}: ${rawBody.slice(0, 300)}`,
@@ -159,45 +161,127 @@ export const metaApiService = {
    * Transport: multipart/form-data with fields: model, file
    * Response: { turns: [{ speaker, text }] }
    *
-   * Returns the full transcript as a single joined string.
-   * Throws MetaApiError on any failure — caller must handle.
-   *
-   * NOTE: Audio format acceptance is logged so the dev-check screen
-   * can report it. Phase 2 will confirm the exact accepted format.
+   * Accepts a real local file:// URI.
+   * Tries standard fetch multipart first. If that fails with an Android
+   * multipart issue, falls back to FileSystem.uploadAsync.
    */
-  async transcribeAudio(audioUri: string): Promise<string> {
-    const formData = new FormData();
-    formData.append('model', 'muse-voice-transcribe-1.0');
+  async transcribeAudio(fileUri: string): Promise<string> {
+    if (!API_KEY) {
+      throw new MetaApiError(
+        'META_API_KEY is not set. Add EXPO_PUBLIC_META_API_KEY to your .env file.',
+        '/asr/transcribe',
+        undefined,
+        'missing_key'
+      );
+    }
 
-    // React Native's fetch handles both file:// and data: URIs in FormData.
-    // The MIME type is audio/wav for the dev-check sample, audio/m4a for live recordings.
-    const mimeType = audioUri.startsWith('data:audio/wav') ? 'audio/wav' : 'audio/m4a';
-    const fileName = mimeType === 'audio/wav' ? 'sample.wav' : 'segment.m4a';
+    const isWav = fileUri.toLowerCase().endsWith('.wav');
+    const mimeType = isWav ? 'audio/wav' : 'audio/m4a';
+    const fileName = isWav ? 'audio.wav' : 'audio.m4a';
 
-    formData.append('file', {
-      uri: audioUri,
-      type: mimeType,
-      name: fileName,
-    } as unknown as Blob);
+    let rawBody = '';
+    let statusCode = 200;
 
-    const data = await metaRequest<AsrTranscribeResponse>('/asr/transcribe', {
-      method: 'POST',
-      body: formData,
-      // Do NOT set Content-Type — fetch sets it with the correct boundary
-    });
+    // 1. Primary method: standard FormData with fetch
+    try {
+      const formData = new FormData();
+      formData.append('model', 'muse-voice-transcribe-1.0');
+      formData.append('file', {
+        uri: fileUri,
+        type: mimeType,
+        name: fileName,
+      } as unknown as Blob);
 
-    if (!data.turns || data.turns.length === 0) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+      const res = await fetch(`${BASE_URL}/asr/transcribe`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          // Do NOT set Content-Type: multipart/form-data manually
+        },
+        body: formData,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timer);
+      statusCode = res.status;
+      rawBody = await res.text();
+    } catch (primaryErr: unknown) {
+      if (__DEV__) {
+        console.warn(
+          '[metaApiService] Standard multipart fetch failed, attempting FileSystem.uploadAsync fallback:',
+          primaryErr
+        );
+      }
+
+      // 2. Fallback: native FileSystem.uploadAsync
+      try {
+        const uploadResult = await FileSystem.uploadAsync(
+          `${BASE_URL}/asr/transcribe`,
+          fileUri,
+          {
+            httpMethod: 'POST',
+            uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+            fieldName: 'file',
+            mimeType,
+            headers: {
+              Authorization: `Bearer ${API_KEY}`,
+            },
+            parameters: {
+              model: 'muse-voice-transcribe-1.0',
+            },
+          }
+        );
+
+        statusCode = uploadResult.status;
+        rawBody = uploadResult.body;
+      } catch (fallbackErr: unknown) {
+        throw new MetaApiError(
+          `Transcription upload failed across both fetch and uploadAsync: ${
+            fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)
+          }`,
+          '/asr/transcribe',
+          undefined,
+          'network_error'
+        );
+      }
+    }
+
+    if (statusCode < 200 || statusCode >= 300) {
+      throw new MetaApiError(
+        `Meta API /asr/transcribe returned ${statusCode}: ${rawBody.slice(0, 300)}`,
+        '/asr/transcribe',
+        statusCode,
+        statusCode === 401 || statusCode === 403 ? 'auth_error' : 'request_error',
+        rawBody
+      );
+    }
+
+    let parsed: AsrTranscribeResponse;
+    try {
+      parsed = JSON.parse(rawBody) as AsrTranscribeResponse;
+    } catch {
+      throw new MetaApiError(
+        `Meta API /asr/transcribe returned non-JSON response: ${rawBody.slice(0, 300)}`,
+        '/asr/transcribe',
+        statusCode,
+        'malformed_json',
+        rawBody
+      );
+    }
+
+    if (!parsed.turns || parsed.turns.length === 0) {
       return '';
     }
 
-    return data.turns.map((t) => t.text).join(' ').trim();
+    return parsed.turns.map((t) => t.text).join(' ').trim();
   },
 
   /**
    * Extract structured memories, tasks, reminders and events from a
    * transcript using muse-spark-1.3 in json_object mode.
-   *
-   * Throws MetaApiError on any failure — caller must handle.
    */
   async extractInsights(transcript: string): Promise<ExtractedInsights> {
     const systemPrompt = `You are an AI assistant that extracts structured information from conversation transcripts to help a user with memory difficulties.
@@ -252,7 +336,6 @@ Return only the JSON object — no prose, no markdown fences.`;
       );
     }
 
-    // Ensure all arrays exist even if the model omits them
     return {
       memories: parsed.memories ?? [],
       tasks: parsed.tasks ?? [],
@@ -264,26 +347,27 @@ Return only the JSON object — no prose, no markdown fences.`;
   /**
    * Answer a user question grounded strictly in stored Firestore memories
    * using muse-spark-1.3.
-   *
-   * Throws MetaApiError on any failure — caller must handle.
    */
   async answerQuestion(
     question: string,
     memories: Memory[]
   ): Promise<{ text: string; sourceMemory?: Memory }> {
     if (memories.length === 0) {
-      return { text: "I don't have any stored memories yet. Start a listening session and I will begin capturing information for you." };
+      return {
+        text: "I don't have any stored memories yet. Start a listening session and I will begin capturing information for you.",
+      };
     }
 
     const memoryContext = memories
       .map((m, i) => `[${i + 1}] ${m.title} (${m.category}): ${m.content}`)
       .join('\n');
 
-    // Simple keyword-based source match for attribution
     const sourceMemory = memories.find(
       (m) =>
         question.toLowerCase().includes(m.title.toLowerCase()) ||
-        m.content.toLowerCase().includes(question.split(' ').slice(0, 4).join(' ').toLowerCase())
+        m.content
+          .toLowerCase()
+          .includes(question.split(' ').slice(0, 4).join(' ').toLowerCase())
     );
 
     const data = await metaRequest<ChatCompletionResponse>('/chat/completions', {
