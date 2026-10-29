@@ -1,15 +1,10 @@
 /**
  * Dev-only API check screen.
- * Reachable from Settings only when __DEV__ is true.
- *
- * Runs:
- *   1. A trivial chat completion against muse-spark-1.3
- *   2. A real-time WebSocket session test against wss://api.meta.ai/v1/asr/realtime
- *      (Handshake -> Streams 3 seconds of raw PCM chunks -> endStream -> receives ack/events).
+ * Tests live Meta Chat & Realtime WebSocket ASR with real microphone voice recording.
  */
 
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -18,244 +13,213 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAudioStream, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
 import { MetaApiError, metaApiService } from '../services/metaApi';
-import { MetaRealtimeAsrSession } from '../services/metaRealtimeAsr';
+import { MetaRealtimeAsrSession, RealtimeTranscriptEvent } from '../services/metaRealtimeAsr';
 import { colors } from '../lib/colors';
 
 interface CheckResult {
   label: string;
   status: 'idle' | 'running' | 'ok' | 'error';
-  statusCode?: number;
   latencyMs?: number;
   detail: string;
 }
 
-const INITIAL: CheckResult[] = [
+const INITIAL_RESULTS: CheckResult[] = [
   { label: 'Chat completion (muse-spark-1.3)', status: 'idle', detail: 'Not run yet.' },
-  { label: 'Realtime WebSocket ASR (wss://api.meta.ai/v1/asr/realtime)', status: 'idle', detail: 'Not run yet.' },
+  { label: 'Realtime WebSocket Handshake', status: 'idle', detail: 'Not run yet.' },
 ];
 
-function resultColor(status: CheckResult['status']): string {
-  if (status === 'ok') return '#166e3d';
-  if (status === 'error') return '#b91c1c';
-  return colors.muted;
-}
-
 export default function ApiCheckScreen() {
-  const [results, setResults] = useState<CheckResult[]>(INITIAL);
+  const [results, setResults] = useState<CheckResult[]>(INITIAL_RESULTS);
   const [running, setRunning] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const [liveStatus, setLiveStatus] = useState<string>('Press below to record voice.');
 
-  function updateResult(index: number, patch: Partial<CheckResult>) {
-    setResults((prev) =>
-      prev.map((r, i) => (i === index ? { ...r, ...patch } : r))
-    );
-  }
+  const liveSessionRef = useRef<MetaRealtimeAsrSession | null>(null);
 
-  async function runChecks() {
-    setRunning(true);
-    setResults(INITIAL.map((r) => ({ ...r, status: 'idle', detail: 'Waiting...' })));
-
-    // --- Check 1: Chat completion ---
-    updateResult(0, { status: 'running', detail: 'Sending request...' });
-    const t0 = Date.now();
-    try {
-      const res = await metaApiService.answerQuestion('Say the word OK and nothing else.', [
-        {
-          id: 'test-1',
-          userId: 'dev',
-          title: 'Test memory',
-          content: 'OK',
-          category: 'General',
-          people: [],
-          createdAt: new Date().toISOString(),
-        },
-      ]);
-      updateResult(0, {
-        status: 'ok',
-        latencyMs: Date.now() - t0,
-        detail: `Response: "${res.text.slice(0, 120)}"`,
-      });
-    } catch (err: unknown) {
-      updateResult(0, {
-        status: 'error',
-        latencyMs: Date.now() - t0,
-        statusCode: err instanceof MetaApiError ? err.status : undefined,
-        detail:
-          err instanceof MetaApiError
-            ? `[${err.code}] status=${err.status ?? 'n/a'}\n${err.message}\n\nRaw: ${(err.rawBody ?? '').slice(0, 300)}`
-            : String(err),
-      });
+  const onBuffer = useCallback((buffer: { data: ArrayBuffer }) => {
+    if (liveSessionRef.current && buffer.data) {
+      try {
+        liveSessionRef.current.sendPcmChunk(buffer.data);
+      } catch (err) {
+        console.warn('[ApiCheck] sendPcmChunk error:', err);
+      }
     }
+  }, []);
 
-    // --- Check 2: Realtime WebSocket ASR ---
-    updateResult(1, { status: 'running', detail: 'Opening WebSocket connection...' });
-    const t1 = Date.now();
+  const { stream } = useAudioStream({
+    sampleRate: 16000,
+    channels: 1,
+    encoding: 'int16',
+    onBuffer,
+  });
 
+  const startVoiceRecording = async () => {
     try {
-      let finalTranscript = '';
+      setLiveTranscript('');
+      setLiveStatus('Requesting mic permissions...');
+      const { granted } = await requestRecordingPermissionsAsync();
+      if (!granted) {
+        setLiveStatus('Microphone permission denied.');
+        return;
+      }
+
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      setLiveStatus('Connecting to Meta Realtime ASR...');
 
       const session = new MetaRealtimeAsrSession({
         audioEncoding: 'PCM_16KHZ',
         mode: 'PUSH_TO_TALK',
-        onTranscript: (evt) => {
+        onTranscript: (evt: RealtimeTranscriptEvent) => {
           if (evt.transcript) {
-            finalTranscript += `${evt.transcript} `;
+            setLiveTranscript((prev) => `${prev} ${evt.transcript}`.trim());
           }
         },
+        onError: (err) => setLiveStatus(`Error: ${err.message}`),
       });
 
-      // 1. Connect and complete handshake
-      const assignedSessionId = await session.connect();
-      const handshakeLatency = Date.now() - t1;
+      liveSessionRef.current = session;
+      const sid = await session.connect();
+      setLiveStatus(`Listening live! Speak into mic... (Session: ${sid.slice(0, 10)}...)`);
+      setIsRecording(true);
+      await stream.start();
+    } catch (err) {
+      setLiveStatus(`Failed: ${err instanceof Error ? err.message : String(err)}`);
+      setIsRecording(false);
+    }
+  };
 
-      updateResult(1, {
-        status: 'running',
-        detail: `Handshake ACK in ${handshakeLatency}ms (Session ID: ${assignedSessionId})\nStreaming test PCM frames...`,
-      });
-
-      // 2. Stream a small batch of raw PCM frames (80ms per chunk at 16kHz mono = 2560 bytes)
-      const frameBytes = 16000 * 2 * 0.08; // 2560 bytes
-      const sampleChunk = new Uint8Array(frameBytes);
-
-      // Send 5 dummy frames paced ~80ms
-      for (let i = 0; i < 5; i++) {
-        session.sendPcmChunk(sampleChunk);
-        await new Promise((r) => setTimeout(r, 80));
+  const stopVoiceRecording = async () => {
+    try {
+      setLiveStatus('Finalizing transcript...');
+      stream.stop();
+      if (liveSessionRef.current) {
+        liveSessionRef.current.endStream();
+        setTimeout(() => {
+          liveSessionRef.current?.close();
+          liveSessionRef.current = null;
+          setLiveStatus('Done! Transcript received above.');
+          setIsRecording(false);
+        }, 600);
+      } else {
+        setIsRecording(false);
       }
+    } catch (err) {
+      setLiveStatus(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      setIsRecording(false);
+    }
+  };
 
-      // 3. Half-close input with endStream
+  const updateResult = (index: number, patch: Partial<CheckResult>) => {
+    setResults((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)));
+  };
+
+  const runChecks = async () => {
+    setRunning(true);
+    setResults(INITIAL_RESULTS.map((r) => ({ ...r, status: 'idle', detail: 'Waiting...' })));
+
+    // 1. Chat Completion
+    updateResult(0, { status: 'running', detail: 'Sending prompt...' });
+    const t0 = Date.now();
+    try {
+      const res = await metaApiService.answerQuestion('Say the word OK and nothing else.', [
+        { id: '1', userId: 'dev', title: 'T', content: 'OK', category: 'General', people: [], createdAt: '' },
+      ]);
+      updateResult(0, { status: 'ok', latencyMs: Date.now() - t0, detail: `Response: "${res.text.slice(0, 100)}"` });
+    } catch (err) {
+      updateResult(0, { status: 'error', latencyMs: Date.now() - t0, detail: err instanceof MetaApiError ? err.message : String(err) });
+    }
+
+    // 2. Realtime WebSocket
+    updateResult(1, { status: 'running', detail: 'Connecting to WebSocket...' });
+    const t1 = Date.now();
+    try {
+      const session = new MetaRealtimeAsrSession({ audioEncoding: 'PCM_16KHZ', mode: 'PUSH_TO_TALK' });
+      const sid = await session.connect();
+      session.sendPcmChunk(new Uint8Array(2560));
       session.endStream();
-
-      // Wait a moment for final flush before closing
-      await new Promise((r) => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 300));
       session.close();
-
-      const totalLatency = Date.now() - t1;
-      updateResult(1, {
-        status: 'ok',
-        latencyMs: totalLatency,
-        statusCode: 1000,
-        detail: `Connected & Handshake ACK!\nSession ID: ${assignedSessionId}\nFrames streamed: 5\nTranscript: "${finalTranscript.trim() || '(silent PCM frames)'}"`,
-      });
-    } catch (err: unknown) {
-      updateResult(1, {
-        status: 'error',
-        latencyMs: Date.now() - t1,
-        detail: err instanceof Error ? err.message : String(err),
-      });
+      updateResult(1, { status: 'ok', latencyMs: Date.now() - t1, detail: `Connected! Session: ${sid}` });
+    } catch (err) {
+      updateResult(1, { status: 'error', latencyMs: Date.now() - t1, detail: err instanceof Error ? err.message : String(err) });
     }
 
     setRunning(false);
-  }
+  };
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background, paddingTop: 8 }}
-      edges={['top']}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, paddingTop: 8 }} edges={['top']}>
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
-        {/* Header */}
         <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 16 }}>
           <Text style={{ color: colors.primary, fontSize: 14 }}>Back to Settings</Text>
         </TouchableOpacity>
 
-        <Text
-          style={{
-            fontSize: 22,
-            fontWeight: '700',
-            color: colors.foreground,
-            marginBottom: 4,
-          }}
-        >
-          API Check
+        <Text style={{ fontSize: 22, fontWeight: '700', color: colors.foreground, marginBottom: 4 }}>
+          Live Voice Test
         </Text>
         <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 20 }}>
-          Dev only. Tests live Meta Chat &amp; Realtime WebSocket ASR connection.
+          Streams your live voice to Meta Realtime ASR WebSocket.
         </Text>
 
-        {/* Run button */}
-        <TouchableOpacity
-          onPress={runChecks}
-          disabled={running}
-          style={{
-            backgroundColor: running ? colors.muted : colors.primary,
-            borderRadius: 24,
-            paddingVertical: 12,
-            alignItems: 'center',
-            marginBottom: 28,
-          }}
-        >
-          {running ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={{ color: '#fff', fontWeight: '600', fontSize: 15 }}>
-              Run checks
-            </Text>
-          )}
-        </TouchableOpacity>
+        {/* Live Voice Box */}
+        <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 18, marginBottom: 24, borderWidth: 1, borderColor: colors.border }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: colors.foreground, marginBottom: 8 }}>
+            Microphone Live Stream
+          </Text>
 
-        {/* Results */}
-        {results.map((r) => (
-          <View
-            key={r.label}
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: 12,
-              padding: 16,
-              marginBottom: 12,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-          >
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                marginBottom: 6,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: '600',
-                  color: colors.foreground,
-                  flex: 1,
-                }}
-              >
-                {r.label}
+          <View style={{ backgroundColor: colors.background, borderRadius: 12, padding: 14, minHeight: 90, marginBottom: 12, borderWidth: 1, borderColor: colors.border, justifyContent: 'center' }}>
+            {liveTranscript ? (
+              <Text style={{ fontSize: 16, fontWeight: '600', color: colors.foreground }}>
+                &ldquo;{liveTranscript}&rdquo;
               </Text>
-              {r.status === 'running' && (
-                <ActivityIndicator size="small" color={colors.primary} />
-              )}
+            ) : (
+              <Text style={{ fontSize: 13, color: colors.muted, fontStyle: 'italic' }}>
+                {isRecording ? 'Listening live... speak now.' : 'Your transcribed words will appear here in real time.'}
+              </Text>
+            )}
+          </View>
+
+          <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 14, fontFamily: 'monospace' }}>
+            {liveStatus}
+          </Text>
+
+          <TouchableOpacity
+            onPress={isRecording ? stopVoiceRecording : startVoiceRecording}
+            style={{ backgroundColor: isRecording ? '#b91c1c' : colors.primary, borderRadius: 24, paddingVertical: 12, alignItems: 'center' }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>
+              {isRecording ? 'Stop & Finish' : 'Record My Voice'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Diagnostic Checks */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: colors.foreground }}>Endpoints</Text>
+          <TouchableOpacity onPress={runChecks} disabled={running}>
+            <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>
+              {running ? 'Checking...' : 'Run Diagnostics'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {results.map((r) => (
+          <View key={r.label} style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: colors.border }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.foreground, flex: 1 }}>{r.label}</Text>
+              {r.status === 'running' && <ActivityIndicator size="small" color={colors.primary} />}
               {(r.status === 'ok' || r.status === 'error') && (
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: '700',
-                    color: resultColor(r.status),
-                  }}
-                >
-                  {r.status.toUpperCase()}
-                  {r.statusCode != null ? ` ${r.statusCode}` : ''}
-                  {r.latencyMs != null ? `  ${r.latencyMs}ms` : ''}
+                <Text style={{ fontSize: 11, fontWeight: '700', color: r.status === 'ok' ? '#166e3d' : '#b91c1c' }}>
+                  {r.status.toUpperCase()} {r.latencyMs != null ? `${r.latencyMs}ms` : ''}
                 </Text>
               )}
             </View>
-            <Text
-              style={{
-                fontSize: 12,
-                color: colors.muted,
-                fontFamily: 'monospace',
-              }}
-            >
-              {r.detail}
-            </Text>
+            <Text style={{ fontSize: 11, color: colors.muted, fontFamily: 'monospace' }}>{r.detail}</Text>
           </View>
         ))}
-
-        <Text style={{ fontSize: 11, color: colors.muted, marginTop: 8 }}>
-          Tests WebSocket handshake and PCM binary streaming at wss://api.meta.ai/v1/asr/realtime.
-        </Text>
       </ScrollView>
     </SafeAreaView>
   );
