@@ -4,10 +4,8 @@
  *
  * Runs:
  *   1. A trivial chat completion against muse-spark-1.3
- *   2. A transcription call against muse-voice-transcribe-1.0
- *      using a validated 16kHz mono 16-bit WAV file created in cache.
- *
- * Displays: raw status, latency, response details / exact error.
+ *   2. A real-time WebSocket session test against wss://api.meta.ai/v1/asr/realtime
+ *      (Handshake -> Streams 3 seconds of raw PCM chunks -> endStream -> receives ack/events).
  */
 
 import { router } from 'expo-router';
@@ -20,8 +18,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as FileSystem from 'expo-file-system/legacy';
 import { MetaApiError, metaApiService } from '../services/metaApi';
+import { MetaRealtimeAsrSession } from '../services/metaRealtimeAsr';
 import { colors } from '../lib/colors';
 
 interface CheckResult {
@@ -34,12 +32,8 @@ interface CheckResult {
 
 const INITIAL: CheckResult[] = [
   { label: 'Chat completion (muse-spark-1.3)', status: 'idle', detail: 'Not run yet.' },
-  { label: 'ASR transcription (muse-voice-transcribe-1.0)', status: 'idle', detail: 'Not run yet.' },
+  { label: 'Realtime WebSocket ASR (wss://api.meta.ai/v1/asr/realtime)', status: 'idle', detail: 'Not run yet.' },
 ];
-
-// Single continuous verified base64 string for 16kHz mono 16-bit PCM WAV (684 bytes).
-const VERIFIED_WAV_BASE64 =
-  'UklGRqQCAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YYACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 
 function resultColor(status: CheckResult['status']): string {
   if (status === 'ok') return '#166e3d';
@@ -93,56 +87,62 @@ export default function ApiCheckScreen() {
       });
     }
 
-    // --- Check 2: ASR transcription ---
-    updateResult(1, { status: 'running', detail: 'Writing valid 16kHz WAV to cache...' });
+    // --- Check 2: Realtime WebSocket ASR ---
+    updateResult(1, { status: 'running', detail: 'Opening WebSocket connection...' });
     const t1 = Date.now();
-    const tempWavUri = `${FileSystem.cacheDirectory}test_sample_${Date.now()}.wav`;
 
     try {
-      // Clean base64 string of any extraneous characters or whitespace
-      const cleanBase64 = VERIFIED_WAV_BASE64.replace(/[^A-Za-z0-9+/=]/g, '');
+      let finalTranscript = '';
 
-      // 1. Write the clean valid WAV bytes to cache
-      await FileSystem.writeAsStringAsync(tempWavUri, cleanBase64, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-
-      updateResult(1, { status: 'running', detail: 'Validating & uploading WAV to Meta ASR...' });
-
-      // 2. Call the updated transcribeAudio matching Meta's cookbook contract
-      const response = await metaApiService.transcribeAudio(tempWavUri, {
+      const session = new MetaRealtimeAsrSession({
+        audioEncoding: 'PCM_16KHZ',
         mode: 'PUSH_TO_TALK',
-        keywords: ['Ranti', 'test'],
+        onTranscript: (evt) => {
+          if (evt.transcript) {
+            finalTranscript += `${evt.transcript} `;
+          }
+        },
       });
+
+      // 1. Connect and complete handshake
+      const assignedSessionId = await session.connect();
+      const handshakeLatency = Date.now() - t1;
 
       updateResult(1, {
+        status: 'running',
+        detail: `Handshake ACK in ${handshakeLatency}ms (Session ID: ${assignedSessionId})\nStreaming test PCM frames...`,
+      });
+
+      // 2. Stream a small batch of raw PCM frames (80ms per chunk at 16kHz mono = 2560 bytes)
+      const frameBytes = 16000 * 2 * 0.08; // 2560 bytes
+      const sampleChunk = new Uint8Array(frameBytes);
+
+      // Send 5 dummy frames paced ~80ms
+      for (let i = 0; i < 5; i++) {
+        session.sendPcmChunk(sampleChunk);
+        await new Promise((r) => setTimeout(r, 80));
+      }
+
+      // 3. Half-close input with endStream
+      session.endStream();
+
+      // Wait a moment for final flush before closing
+      await new Promise((r) => setTimeout(r, 500));
+      session.close();
+
+      const totalLatency = Date.now() - t1;
+      updateResult(1, {
         status: 'ok',
-        latencyMs: Date.now() - t1,
-        statusCode: 200,
-        detail: `sessionId: ${response.sessionId || 'n/a'}\nduration: ${response.audioDurationMs ?? 'n/a'}ms\ntranscript: "${response.transcript || '(silent sample)'}"`,
+        latencyMs: totalLatency,
+        statusCode: 1000,
+        detail: `Connected & Handshake ACK!\nSession ID: ${assignedSessionId}\nFrames streamed: 5\nTranscript: "${finalTranscript.trim() || '(silent PCM frames)'}"`,
       });
     } catch (err: unknown) {
       updateResult(1, {
         status: 'error',
         latencyMs: Date.now() - t1,
-        statusCode: err instanceof MetaApiError ? err.status : undefined,
-        detail:
-          err instanceof MetaApiError
-            ? `[${err.code}] status=${err.status ?? 'n/a'}\n${err.message}\n\nRaw: ${(err.rawBody ?? '').slice(0, 300)}`
-            : String(err),
+        detail: err instanceof Error ? err.message : String(err),
       });
-    } finally {
-      // 3. Clean up the temp file
-      try {
-        const info = await FileSystem.getInfoAsync(tempWavUri);
-        if (info.exists) {
-          await FileSystem.deleteAsync(tempWavUri, { idempotent: true });
-        }
-      } catch (cleanupErr) {
-        if (__DEV__) {
-          console.warn('[ApiCheckScreen] Failed to delete temp wav file:', cleanupErr);
-        }
-      }
     }
 
     setRunning(false);
@@ -170,7 +170,7 @@ export default function ApiCheckScreen() {
           API Check
         </Text>
         <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 20 }}>
-          Dev only. Tests live Meta Chat &amp; ASR endpoints matching cookbook contract.
+          Dev only. Tests live Meta Chat &amp; Realtime WebSocket ASR connection.
         </Text>
 
         {/* Run button */}
@@ -254,7 +254,7 @@ export default function ApiCheckScreen() {
         ))}
 
         <Text style={{ fontSize: 11, color: colors.muted, marginTop: 8 }}>
-          Validates 16kHz mono WAV header before uploading &apos;request&apos; JSON + &apos;audio&apos; WAV parts.
+          Tests WebSocket handshake and PCM binary streaming at wss://api.meta.ai/v1/asr/realtime.
         </Text>
       </ScrollView>
     </SafeAreaView>

@@ -15,18 +15,12 @@ Last Updated: 2026-10-29T19:26:00+01:00
 ## 2. Completed Architecture & Milestones
 
 ### A. Phase 1: Meta Model API Integration & Error Handling
-- [x] **Meta Cookbook Contract for Muse Voice Transcribe:** Conformed exact multipart format (`request` JSON part + `audio` WAV part). Eliminated legacy `file` and `model` multipart fields.
-- [x] **WAV Header Pre-Validation (`validateWavHeader`):** Validates RIFF/WAVE container magic strings, uncompressed PCM format code (1), mono channels (1), 16000/24000 Hz sample rate, 16-bit depth, 32 MB max size, and 10-minute maximum duration before attempting network upload.
-- [x] **Three Multipart Upload Fallbacks:**
-  1. React Native FormData with `{ string, type: 'application/json' }` part and `{ uri, name: 'audio.wav', type: 'audio/wav' }`.
-  2. Standards-compliant FormData with `new Blob([json], { type: 'application/json' })`.
-  3. Native `expo-file-system` `uploadAsync` multipart fallback.
-- [x] **Full Response Typing & Mode Support:** Added `AsrTranscribeResponse` with `sessionId`, `transcript`, `audioDurationMs`, and `turns` (`startMs`, `transcript`, `speaker`). Default mode `PUSH_TO_TALK` with support for `DIARIZATION` and `ENDPOINTING`. Supports `keywords` and `languageBias`.
-- [x] **Base URL & Endpoint Fix:** Updated base URL to `https://api.meta.ai/v1` and file ASR route to `POST /v1/asr/transcribe`.
-- [x] **Typed Error Architecture (`MetaApiError`):** Created structured error handling covering timeouts, 400 (malformed/too long), 401/403 bad keys, 404, 413 (payload too large), 429 rate limits, 5xx server failures, and malformed JSON.
-- [x] **No Silent Failures:** Eliminated all empty-string/empty-array swallow catches in [`src/services/metaApi.ts`](file:///c:/Users/Abraham/Desktop/Projects/ranti/src/services/metaApi.ts). Errors propagate cleanly to callers.
-- [x] **Dev-Only API Check Screen (`src/app/api-check.tsx`):** Diagnostic screen with byte-aligned valid 16kHz mono WAV sample testing live Chat Completions and ASR transcription with latency, raw status, and full response/error logging.
-- [x] **Environment Template:** Updated [`.env.example`](file:///c:/Users/Abraham/Desktop/Projects/ranti/.env.example) with the official base URL and reminder to set a spend limit on the Meta billing page.
+- [x] **Realtime WebSocket ASR Client (`src/services/metaRealtimeAsr.ts`):** Created native WebSocket streaming client targeting `wss://api.meta.ai/v1/asr/realtime`. Sends JSON handshake frame with Bearer token, receives session acknowledgement, streams binary raw PCM frames, and receives live transcript events until `endStream` half-close.
+- [x] **Dev-Only API Check Screen (`src/app/api-check.tsx`):** Updated to test both live Chat Completions and the live WebSocket handshake / PCM stream directly from the device.
+- [x] **Base URL & Endpoint Fix:** Base URL set to `https://api.meta.ai/v1` for completions and `wss://api.meta.ai/v1/asr/realtime` for streaming ASR.
+- [x] **Typed Error Architecture (`MetaApiError`):** Created structured error handling covering timeouts, 400/401/404/413/429/500 errors and malformed JSON.
+- [x] **No Silent Failures:** Eliminated all swallow catches in `metaApi.ts`.
+- [x] **Environment Template:** Updated [`.env.example`](file:///c:/Users/Abraham/Desktop/Projects/ranti/.env.example) with official endpoints and spend limit notices.
 
 ### B. Listening & Audio Pipeline
 - [ ] **Voice Pipeline Reset:** Stripped ambient capture work back to the clean baseline event-listener shell (`src/services/audioRecorder.ts` and `src/hooks/useListeningSession.ts`) so you can implement the audio recording yourself.
