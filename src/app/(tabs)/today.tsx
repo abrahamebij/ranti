@@ -5,7 +5,6 @@ import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTasks } from "../../hooks/useTasks";
 import { useMemories } from "../../hooks/useMemories";
-import { useListeningSession } from "../../hooks/useListeningSession";
 import { userSettingsService } from "../../services/userSettings";
 import { colors } from "../../lib/colors";
 
@@ -13,7 +12,6 @@ export default function TodayScreen() {
   const [displayName, setDisplayName] = useState("Friend");
   const { allTasks, toggleTask } = useTasks();
   const { allMemories } = useMemories();
-  const { isListening } = useListeningSession();
 
   useEffect(() => {
     userSettingsService.getSettings().then((s) => {
@@ -201,20 +199,6 @@ export default function TodayScreen() {
               </TouchableOpacity>
             ))
           )}
-        </View>
-
-        {/* Background listening banner */}
-        <View className="mx-5 bg-surface-muted rounded-xl px-4 py-3 flex-row items-center gap-2">
-          <View
-            className={`w-2 h-2 rounded-full ${
-              isListening ? "bg-active-dot" : "bg-muted"
-            }`}
-          />
-          <Text className="text-sm font-semibold text-primary">
-            {isListening
-              ? "Background listening on"
-              : "Background listening paused"}
-          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>

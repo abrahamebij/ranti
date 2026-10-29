@@ -1,6 +1,6 @@
 /**
  * Dev-only API check screen.
- * Tests live Meta Chat & Realtime WebSocket ASR with real microphone voice recording.
+ * Tests live Meta Chat, Realtime WebSocket ASR, and Phase 4 Extraction & Save Pipeline.
  */
 
 import { router } from 'expo-router';
@@ -14,8 +14,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAudioStream, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
+import { useListeningSession } from '../hooks/useListeningSession';
 import { MetaApiError, metaApiService } from '../services/metaApi';
 import { MetaRealtimeAsrSession, RealtimeTranscriptEvent } from '../services/metaRealtimeAsr';
+import { runExtractionFixtures } from '../services/extractionFixtures';
 import { colors } from '../lib/colors';
 
 interface CheckResult {
@@ -37,6 +39,7 @@ export default function ApiCheckScreen() {
   const [liveTranscript, setLiveTranscript] = useState('');
   const [liveStatus, setLiveStatus] = useState<string>('Press below to record voice.');
 
+  const { processTranscript, isProcessing } = useListeningSession();
   const liveSessionRef = useRef<MetaRealtimeAsrSession | null>(null);
 
   const onBuffer = useCallback((buffer: { data: ArrayBuffer }) => {
@@ -82,7 +85,7 @@ export default function ApiCheckScreen() {
 
       liveSessionRef.current = session;
       const sid = await session.connect();
-      setLiveStatus(`Listening live! Speak into mic... (Session: ${sid.slice(0, 10)}...)`);
+      setLiveStatus(`Listening live! Speak now... (Session: ${sid.slice(0, 10)}...)`);
       setIsRecording(true);
       await stream.start();
     } catch (err) {
@@ -93,15 +96,22 @@ export default function ApiCheckScreen() {
 
   const stopVoiceRecording = async () => {
     try {
-      setLiveStatus('Finalizing transcript...');
+      setLiveStatus('Finalizing audio...');
       stream.stop();
       if (liveSessionRef.current) {
         liveSessionRef.current.endStream();
-        setTimeout(() => {
+        setTimeout(async () => {
           liveSessionRef.current?.close();
           liveSessionRef.current = null;
-          setLiveStatus('Done! Transcript received above.');
           setIsRecording(false);
+
+          if (liveTranscript.trim()) {
+            setLiveStatus('Extracting structured memories/tasks & saving to db...');
+            await processTranscript(liveTranscript);
+            setLiveStatus('Saved to database! Check Today & Reminders tabs.');
+          } else {
+            setLiveStatus('Done (no speech detected).');
+          }
         }, 600);
       } else {
         setIsRecording(false);
@@ -147,6 +157,18 @@ export default function ApiCheckScreen() {
       updateResult(1, { status: 'error', latencyMs: Date.now() - t1, detail: err instanceof Error ? err.message : String(err) });
     }
 
+    // 3. Run Extraction Fixtures
+    const fixtures = await runExtractionFixtures();
+    const fixtureSummary = fixtures.map((f) => `${f.name}: ${f.passed ? 'PASSED' : 'FAILED'}\n  ${f.detail}`).join('\n');
+    setResults((prev) => [
+      ...prev,
+      {
+        label: 'Extraction Schema & Temporal Test',
+        status: fixtures.every((f) => f.passed) ? 'ok' : 'error',
+        detail: fixtureSummary,
+      },
+    ]);
+
     setRunning(false);
   };
 
@@ -158,16 +180,16 @@ export default function ApiCheckScreen() {
         </TouchableOpacity>
 
         <Text style={{ fontSize: 22, fontWeight: '700', color: colors.foreground, marginBottom: 4 }}>
-          Live Voice Test
+          Live Voice &amp; Extraction Test
         </Text>
         <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 20 }}>
-          Streams your live voice to Meta Realtime ASR WebSocket.
+          Speak to test live transcription + structured extraction + Firestore save.
         </Text>
 
         {/* Live Voice Box */}
         <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 18, marginBottom: 24, borderWidth: 1, borderColor: colors.border }}>
           <Text style={{ fontSize: 15, fontWeight: '700', color: colors.foreground, marginBottom: 8 }}>
-            Microphone Live Stream
+            Speak Live &amp; Save
           </Text>
 
           <View style={{ backgroundColor: colors.background, borderRadius: 12, padding: 14, minHeight: 90, marginBottom: 12, borderWidth: 1, borderColor: colors.border, justifyContent: 'center' }}>
@@ -177,37 +199,38 @@ export default function ApiCheckScreen() {
               </Text>
             ) : (
               <Text style={{ fontSize: 13, color: colors.muted, fontStyle: 'italic' }}>
-                {isRecording ? 'Listening live... speak now.' : 'Your transcribed words will appear here in real time.'}
+                {isRecording ? 'Listening live... speak now.' : 'Say e.g. "Remind me to call James tomorrow at 3pm"'}
               </Text>
             )}
           </View>
 
           <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 14, fontFamily: 'monospace' }}>
-            {liveStatus}
+            {isProcessing ? 'Processing extraction & Firestore write...' : liveStatus}
           </Text>
 
           <TouchableOpacity
             onPress={isRecording ? stopVoiceRecording : startVoiceRecording}
+            disabled={isProcessing}
             style={{ backgroundColor: isRecording ? '#b91c1c' : colors.primary, borderRadius: 24, paddingVertical: 12, alignItems: 'center' }}
           >
             <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>
-              {isRecording ? 'Stop & Finish' : 'Record My Voice'}
+              {isRecording ? 'Stop & Save to DB' : 'Record My Voice'}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Diagnostic Checks */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <Text style={{ fontSize: 14, fontWeight: '600', color: colors.foreground }}>Endpoints</Text>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: colors.foreground }}>Automated Diagnostics</Text>
           <TouchableOpacity onPress={runChecks} disabled={running}>
             <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>
-              {running ? 'Checking...' : 'Run Diagnostics'}
+              {running ? 'Running...' : 'Run Diagnostics'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {results.map((r) => (
-          <View key={r.label} style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: colors.border }}>
+        {results.map((r, i) => (
+          <View key={`${r.label}-${i}`} style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: colors.border }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
               <Text style={{ fontSize: 12, fontWeight: '600', color: colors.foreground, flex: 1 }}>{r.label}</Text>
               {r.status === 'running' && <ActivityIndicator size="small" color={colors.primary} />}

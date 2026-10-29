@@ -17,7 +17,6 @@ import {
 } from "expo-audio";
 import { useChat } from "../../hooks/useChat";
 import { useMemories } from "../../hooks/useMemories";
-import { useListeningSession } from "../../hooks/useListeningSession";
 import { MetaRealtimeAsrSession } from "../../services/metaRealtimeAsr";
 import { colors } from "../../lib/colors";
 
@@ -28,8 +27,6 @@ export default function AssistantScreen() {
 
   const { messages, askQuestion, isThinking } = useChat();
   const { allMemories } = useMemories();
-  const { isListening, isProcessing, lastError, toggleListening } =
-    useListeningSession();
 
   const dictationSessionRef = useRef<MetaRealtimeAsrSession | null>(null);
 
@@ -144,42 +141,6 @@ export default function AssistantScreen() {
         </View>
         <TouchableOpacity activeOpacity={0.7}>
           <Ionicons name="ellipsis-horizontal" size={22} color={colors.foreground} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Listening banner */}
-      <View className="mx-5 mb-4 bg-surface rounded-xl px-4 py-3 flex-row items-center justify-between">
-        <View className="flex-row items-center gap-2">
-          <View
-            className={`w-2 h-2 rounded-full ${
-              isListening ? "bg-active-dot" : "bg-muted"
-            }`}
-          />
-          <View>
-            <Text className="text-sm font-semibold text-primary">
-              {isListening
-                ? isProcessing
-                  ? "Processing..."
-                  : "Background listening on"
-                : "Background listening paused"}
-            </Text>
-            <Text className="text-xs text-muted">
-              {lastError
-                ? lastError
-                : isListening
-                  ? "Saving moments as you go."
-                  : "Tap to resume capture."}
-            </Text>
-          </View>
-        </View>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={toggleListening}
-          className="border border-border rounded-full px-3 py-1"
-        >
-          <Text className="text-sm font-medium text-foreground">
-            {isListening ? "Stop" : "Resume"}
-          </Text>
         </TouchableOpacity>
       </View>
 
