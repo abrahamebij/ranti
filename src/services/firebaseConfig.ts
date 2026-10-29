@@ -13,7 +13,7 @@ export const firebaseConfig = {
 };
 
 export const defaultUserId =
-  process.env.EXPO_PUBLIC_DEFAULT_USER_ID || 'demo-alex-lee';
+  process.env.EXPO_PUBLIC_DEFAULT_USER_ID || 'default-user';
 
 export const isFirebaseConfigured = Boolean(
   firebaseConfig.apiKey &&

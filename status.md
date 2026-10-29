@@ -26,7 +26,25 @@ Last Updated: 2026-10-29T19:26:00+01:00
 - [ ] **Voice Pipeline Reset:** Stripped ambient capture work back to the clean baseline event-listener shell (`src/services/audioRecorder.ts` and `src/hooks/useListeningSession.ts`) so you can implement the audio recording yourself.
 - [x] **Pipeline Interface Maintained:** `useListeningSession` retains the clean subscription and start/stop controls hooked up to Firestore and React Query.
 
-### C. Reminders & Tasks Feature
+### C. Phase 3: Real Onboarding, Assistant Dictation & Identity Decoupling
+- [x] **Real Sound Check & Voice Setup (`src/app/voice-setup.tsx`):**
+  - Prompts for real Android microphone permissions.
+  - Live metering waveform and running timer during recording.
+  - Records real audio with `expo-audio`, copies to document directory, and provides immediate audio playback.
+  - Collects custom user display name and saves settings via `userSettingsService`.
+  - Transparent copy labeled as "Sound check & Profile" (no fake voice-recognition claims).
+- [x] **Onboarding Persistence & Auto-Route (`src/app/_layout.tsx`):**
+  - Stored `isOnboarded` flag checked on launch; returning users auto-route directly to the main app tabs.
+- [x] **Live Assistant Push-to-Dictate (`src/app/(tabs)/assistant.tsx`):**
+  - Assistant mic button now initiates native `useAudioStream` capture and streams live PCM chunks to Meta's Realtime ASR WebSocket.
+  - Live transcribed speech fills directly into the message input in real-time.
+  - Clear visual states: listening, transcribing, error, and red stop button. Independent of background ambient listening.
+- [x] **Hardcoded Identity Elimination:**
+  - Removed "Alex Lee", "Morning, Alex", and "What does Maya like?".
+  - User greeting is dynamic based on time of day and user's saved display name (editable in Settings modal).
+  - Suggestions dynamically reference stored memories or fallback to neutral generic questions.
+
+### D. Reminders & Tasks Feature
 - [x] **Native Date / Time Picker:** Replaced free-text date input with `@react-native-community/datetimepicker` (v9.1.0). Tapping "Set date & time" opens the Android `DatePickerDialog`, then auto-transitions to `TimePickerDialog`. Quick-select preset pills ("Today", "Tomorrow", "Next week") set a `Date` at 9 AM on the respective day and highlight when active. Save stores `time` as a human-readable string (e.g. `Tue, Oct 29 · 5:30 PM`) and `dueAt` as an ISO timestamp in Firestore.
 - [x] **Instant Check / Uncheck:** In [`src/hooks/useTasks.ts`](file:///c:/Users/Abraham/Desktop/Projects/ranti/src/hooks/useTasks.ts), checking or unchecking a reminder optimistically toggles the checkbox and line-through immediately with zero latency using React Query `onMutate` cache updates and rollback on error.
 - [x] **Instant Task Creation:** When saving a reminder, `addTask` inserts the item optimistically into the cache before awaiting the Firestore network response.

@@ -1,16 +1,52 @@
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import { router } from "expo-router";
-import { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Card } from "../../components/Card";
 import { SettingsRow } from "../../components/SettingsRow";
 import { Switch } from "../../components/Switch";
+import { userSettingsService, UserSettings } from "../../services/userSettings";
 import { colors } from "../../lib/colors";
 
 export default function SettingsScreen() {
   const [backgroundListening, setBackgroundListening] = useState(true);
   const [notifications, setNotifications] = useState(true);
+  const [settings, setSettings] = useState<UserSettings>({
+    isOnboarded: true,
+    displayName: "Friend",
+  });
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [newName, setNewName] = useState("");
+
+  useEffect(() => {
+    userSettingsService.getSettings().then((s) => {
+      setSettings(s);
+      setNewName(s.displayName);
+    });
+  }, []);
+
+  const saveName = async () => {
+    const updated = await userSettingsService.saveSettings({
+      displayName: newName.trim() || "Friend",
+    });
+    setSettings(updated);
+    setIsEditingName(false);
+  };
+
+  const initials = settings.displayName
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <SafeAreaView
@@ -31,18 +67,19 @@ export default function SettingsScreen() {
           <Card>
             <TouchableOpacity
               activeOpacity={0.7}
+              onPress={() => setIsEditingName(true)}
               className="flex-row items-center gap-3"
             >
               <View className="w-11 h-11 rounded-full bg-tag-bg items-center justify-center">
-                <Text className="text-sm font-bold text-tag-text">AL</Text>
+                <Text className="text-sm font-bold text-tag-text">{initials || "R"}</Text>
               </View>
               <View className="flex-1">
                 <Text className="text-base font-semibold text-foreground">
-                  Alex Lee
+                  {settings.displayName}
                 </Text>
-                <Text className="text-xs text-muted">Manage profile</Text>
+                <Text className="text-xs text-muted">Tap to edit name</Text>
               </View>
-              <Ionicons name="chevron-down" size={18} color={colors.muted} />
+              <Ionicons name="pencil-outline" size={18} color={colors.muted} />
             </TouchableOpacity>
           </Card>
         </View>
@@ -71,8 +108,8 @@ export default function SettingsScreen() {
           />
           <SettingsRow
             icon="mic-outline"
-            title="Voice setup"
-            subtitle="Voice sample saved"
+            title="Sound check &amp; Profile"
+            subtitle="Manage voice setup"
             onPress={() => router.push("/voice-setup")}
             showDivider={false}
           />
@@ -120,6 +157,38 @@ export default function SettingsScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Edit Name Modal */}
+      <Modal visible={isEditingName} transparent animationType="fade">
+        <View className="flex-1 bg-black/50 justify-center px-6">
+          <View className="bg-surface rounded-2xl p-6 border border-border">
+            <Text className="text-lg font-bold text-foreground mb-2">Edit Display Name</Text>
+            <Text className="text-xs text-muted mb-4">What should Ranti call you?</Text>
+            <TextInput
+              value={newName}
+              onChangeText={setNewName}
+              placeholder="e.g. Alex"
+              placeholderTextColor={colors.muted}
+              className="bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground mb-4"
+              autoFocus
+            />
+            <View className="flex-row justify-end gap-3">
+              <TouchableOpacity
+                onPress={() => setIsEditingName(false)}
+                className="px-4 py-2 rounded-full"
+              >
+                <Text className="text-sm text-muted">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={saveName}
+                className="bg-primary px-5 py-2 rounded-full"
+              >
+                <Text className="text-sm font-semibold text-primary-foreground">Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

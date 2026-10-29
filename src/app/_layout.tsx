@@ -1,11 +1,12 @@
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "../services/queryClient";
+import { userSettingsService } from "../services/userSettings";
 import "../global.css";
 import { colors } from "../lib/colors";
 
@@ -15,14 +16,31 @@ export default function RootLayout() {
   const [loaded, error] = useFonts({
     Ionicons: require("@react-native-vector-icons/ionicons/fonts/Ionicons.ttf"),
   });
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    if (loaded || error) {
+    async function prepare() {
+      try {
+        const settings = await userSettingsService.getSettings();
+        if (settings.isOnboarded) {
+          router.replace("/(tabs)/assistant");
+        }
+      } catch (e) {
+        console.warn("Failed to check onboarded status:", e);
+      } finally {
+        setIsReady(true);
+      }
+    }
+    prepare();
+  }, []);
+
+  useEffect(() => {
+    if ((loaded || error) && isReady) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [loaded, error]);
+  }, [loaded, error, isReady]);
 
-  if (!loaded && !error) {
+  if ((!loaded && !error) || !isReady) {
     return null;
   }
 

@@ -1,20 +1,38 @@
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTasks } from "../../hooks/useTasks";
 import { useMemories } from "../../hooks/useMemories";
 import { useListeningSession } from "../../hooks/useListeningSession";
+import { userSettingsService } from "../../services/userSettings";
 import { colors } from "../../lib/colors";
 
 export default function TodayScreen() {
+  const [displayName, setDisplayName] = useState("Friend");
   const { allTasks, toggleTask } = useTasks();
   const { allMemories } = useMemories();
   const { isListening } = useListeningSession();
 
+  useEffect(() => {
+    userSettingsService.getSettings().then((s) => {
+      if (s.displayName) setDisplayName(s.displayName);
+    });
+  }, []);
+
   const upNextTask = allTasks.find((t) => !t.completed);
   const listTasks = allTasks.filter((t) => t.id !== upNextTask?.id).slice(0, 3);
   const recentMemories = allMemories.slice(0, 2);
+
+  const now = new Date();
+  const hours = now.getHours();
+  const greeting = hours < 12 ? "Morning" : hours < 17 ? "Afternoon" : "Evening";
+  const dateFormatted = now.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 
   return (
     <SafeAreaView
@@ -28,10 +46,10 @@ export default function TodayScreen() {
         {/* Header */}
         <View className="px-5 pt-2 pb-4">
           <Text className="text-3xl font-bold text-foreground">
-            Morning, Alex
+            {greeting}, {displayName}
           </Text>
           <Text className="text-sm text-foreground-secondary mt-1">
-            Tuesday, October 27
+            {dateFormatted}
           </Text>
         </View>
 
