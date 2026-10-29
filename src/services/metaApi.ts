@@ -1,15 +1,10 @@
 /**
- * Meta Model API service.
- *
- * Confirmed endpoints & contract (Meta Model Cookbook):
- *   POST https://api.meta.ai/v1/asr/transcribe
- *   Header: Authorization: Bearer <MODEL_API_KEY>
- *
- *   POST https://api.meta.ai/v1/chat/completions
- *   Header: Authorization: Bearer <MODEL_API_KEY>
+ * Meta Model API service with strict JSON Schema structured output
+ * and temporal grounding.
  */
 
-import { ExtractedInsights, Memory } from '../types';
+import { ExtractedInsights, Memory, MemoryCategory } from '../types';
+import { EXTRACTION_JSON_SCHEMA } from './extractionSchema';
 
 const BASE_URL =
   process.env.EXPO_PUBLIC_META_API_ENDPOINT ?? 'https://api.meta.ai/v1';
@@ -121,80 +116,79 @@ async function metaRequest<T>(endpoint: string, init: RequestInit): Promise<T> {
   }
 }
 
+export interface ExtractionContext {
+  previousTranscriptChunk?: string;
+  recentMemoryTitles?: string[];
+  nowIso?: string;
+  timezone?: string;
+}
+
+const VALID_CATEGORIES: Set<MemoryCategory> = new Set([
+  'Plans',
+  'People',
+  'Notes',
+  'General',
+]);
+
 export const metaApiService = {
   /**
-   * Transcribe audio placeholder.
-   * Callers receive speech transcript or propagate error.
+   * Extract structured insights from speech transcript using muse-spark-1.3
+   * with strict JSON schema enforcement and temporal grounding.
    */
-  async transcribeAudio(audioUri: string): Promise<string> {
-    if (!API_KEY) {
-      throw new MetaApiError(
-        'META_API_KEY is not set.',
-        '/asr/transcribe',
-        undefined,
-        'missing_key'
-      );
+  async extractInsights(
+    transcript: string,
+    context: ExtractionContext = {}
+  ): Promise<ExtractedInsights> {
+    if (!transcript || transcript.trim().length === 0) {
+      return { memories: [], tasks: [], reminders: [], events: [] };
     }
 
-    const formData = new FormData();
-    formData.append('request', {
-      string: JSON.stringify({
-        mode: 'PUSH_TO_TALK',
-        model: 'muse-voice-transcribe-1.0',
-        audioEncoding: 'WAV',
-      }),
-      type: 'application/json',
-    } as unknown as Blob);
+    const nowIso = context.nowIso || new Date().toISOString();
+    const tz =
+      context.timezone ||
+      Intl.DateTimeFormat().resolvedOptions().timeZone ||
+      'UTC';
 
-    formData.append('audio', {
-      uri: audioUri,
-      name: 'audio.wav',
-      type: 'audio/wav',
-    } as unknown as Blob);
+    const recentTitles = context.recentMemoryTitles?.length
+      ? `Recent saved memories (do not extract duplicates of these):\n- ${context.recentMemoryTitles.join('\n- ')}`
+      : '';
 
-    const data = await metaRequest<{ transcript?: string; turns?: Array<{ transcript: string }> }>(
-      '/asr/transcribe',
+    const prevChunk = context.previousTranscriptChunk
+      ? `Previous conversation chunk for context:\n"${context.previousTranscriptChunk}"`
+      : '';
+
+    const systemPrompt = `You are Muse Spark 1.3, an AI assistant extracting memory records for people with memory difficulties.
+
+Current Date/Time: ${nowIso}
+Device Timezone: ${tz}
+
+CRITICAL TEMPORAL RULES:
+1. ONLY assign an ISO datetime (such as "2026-10-30T15:00:00") when the conversation explicitly establishes a clear, resolvable date or time (for example, "tomorrow at 3pm" relative to current time).
+2. NEVER INVENT DATES OR TIMES. If the speaker says something vague like "I should call James sometime", the dueAt or scheduledAt MUST BE NULL.
+3. If an event or reminder has NO resolvable scheduled time, do NOT create a reminder. Instead, create a task or note with dueAt as null.
+4. Categorize memories strictly as: "Plans", "People", "Notes", or "General".
+
+${recentTitles}
+${prevChunk}`;
+
+    const data = await metaRequest<ChatCompletionResponse>(
+      '/chat/completions',
       {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'muse-spark-1.3',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: transcript },
+          ],
+          response_format: {
+            type: 'json_schema',
+            json_schema: EXTRACTION_JSON_SCHEMA,
+          },
+        }),
       }
     );
-
-    return data.transcript || data.turns?.map((t) => t.transcript).join(' ') || '';
-  },
-
-  /**
-   * Extract structured insights from transcript using muse-spark-1.3.
-   */
-  async extractInsights(transcript: string): Promise<ExtractedInsights> {
-    const systemPrompt = `You are an AI assistant that extracts structured information from conversation transcripts to help a user with memory difficulties.
-
-Analyse the transcript and return a JSON object with these keys:
-- memories: array of important facts, commitments or personal details worth remembering
-- tasks: array of concrete actions the user needs to complete
-- reminders: array of time-sensitive alerts with a scheduled time when mentioned
-- events: array of calendar appointments or planned activities
-
-Each memory: { title, content, category ("Plans"|"People"|"Notes"|"General"), people: [] }
-Each task: { title, completed: false, dueAt (ISO or null), time (human label or null) }
-Each reminder: { title, scheduledAt (ISO or null), status: "pending", deliveryPreference: "notification" }
-Each event: { title, startAt (ISO or null), location (or null), people: [] }
-
-Only extract information clearly present in the transcript. Do not invent details.
-Return only the JSON object — no prose, no markdown fences.`;
-
-    const data = await metaRequest<ChatCompletionResponse>('/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'muse-spark-1.3',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: transcript },
-        ],
-        response_format: { type: 'json_object' },
-      }),
-    });
 
     const content = data.choices?.[0]?.message?.content;
     if (!content) {
@@ -206,14 +200,9 @@ Return only the JSON object — no prose, no markdown fences.`;
       );
     }
 
+    let parsed: any;
     try {
-      const parsed = JSON.parse(content) as ExtractedInsights;
-      return {
-        memories: parsed.memories ?? [],
-        tasks: parsed.tasks ?? [],
-        reminders: parsed.reminders ?? [],
-        events: parsed.events ?? [],
-      };
+      parsed = JSON.parse(content);
     } catch {
       throw new MetaApiError(
         `muse-spark-1.3 returned invalid JSON: ${content.slice(0, 200)}`,
@@ -223,6 +212,51 @@ Return only the JSON object — no prose, no markdown fences.`;
         content
       );
     }
+
+    const memories = (parsed.memories || []).map((m: any) => ({
+      title: String(m.title || 'Untitled Memory').trim(),
+      content: String(m.content || '').trim(),
+      category: VALID_CATEGORIES.has(m.category) ? m.category : 'General',
+      people: (m.people || []).map((p: any) => ({
+        name: String(p.name || '').trim(),
+        relation: p.relation ? String(p.relation).trim() : undefined,
+      })),
+    }));
+
+    const tasks = (parsed.tasks || []).map((t: any) => ({
+      title: String(t.title || 'Untitled Task').trim(),
+      completed: Boolean(t.completed),
+      dueAt: t.dueAt ? String(t.dueAt).trim() : undefined,
+      time: t.time ? String(t.time).trim() : undefined,
+    }));
+
+    const reminders: any[] = [];
+    for (const r of parsed.reminders || []) {
+      if (r.scheduledAt && !isNaN(Date.parse(r.scheduledAt))) {
+        reminders.push({
+          title: String(r.title || 'Untitled Reminder').trim(),
+          scheduledAt: String(r.scheduledAt).trim(),
+          status: 'pending' as const,
+          deliveryPreference: r.deliveryPreference === 'audio' ? 'audio' : 'notification',
+        });
+      } else {
+        tasks.push({
+          title: String(r.title || 'Untitled Task').trim(),
+          completed: false,
+          dueAt: undefined,
+          time: undefined,
+        });
+      }
+    }
+
+    const events = (parsed.events || []).map((e: any) => ({
+      title: String(e.title || 'Untitled Event').trim(),
+      startAt: e.startAt ? String(e.startAt).trim() : undefined,
+      location: e.location ? String(e.location).trim() : undefined,
+      people: (e.people || []).map((p: any) => String(p).trim()),
+    }));
+
+    return { memories, tasks, reminders, events };
   },
 
   /**
@@ -250,26 +284,29 @@ Return only the JSON object — no prose, no markdown fences.`;
           .includes(question.split(' ').slice(0, 4).join(' ').toLowerCase())
     );
 
-    const data = await metaRequest<ChatCompletionResponse>('/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'muse-spark-1.3',
-        messages: [
-          {
-            role: 'system',
-            content: `You are Ranti, a calm and concise memory assistant for someone with memory difficulties.
+    const data = await metaRequest<ChatCompletionResponse>(
+      '/chat/completions',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'muse-spark-1.3',
+          messages: [
+            {
+              role: 'system',
+              content: `You are Ranti, a calm and concise memory assistant for someone with memory difficulties.
 Answer the user's question using ONLY the memories listed below.
 If the answer is not in the memories, say exactly: "I couldn't find that in your memories."
 Do not guess, invent, or add information not present in the memories.
 
 Memories:
 ${memoryContext}`,
-          },
-          { role: 'user', content: question },
-        ],
-      }),
-    });
+            },
+            { role: 'user', content: question },
+          ],
+        }),
+      }
+    );
 
     const text = data.choices?.[0]?.message?.content;
     if (!text) {

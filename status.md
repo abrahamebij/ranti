@@ -44,7 +44,27 @@ Last Updated: 2026-10-29T19:26:00+01:00
   - User greeting is dynamic based on time of day and user's saved display name (editable in Settings modal).
   - Suggestions dynamically reference stored memories or fallback to neutral generic questions.
 
-### D. Reminders & Tasks Feature
+### D. Phase 4: Valid Structured Extraction, Honest Saves & Temporal Grounding
+- [x] **Schema-Enforced Extraction (`src/services/extractionSchema.ts` & `src/services/metaApi.ts`):**
+  - Integrated Meta's `json_schema` response format with strict validation rules.
+  - Constrained categories strictly to `['Plans', 'People', 'Notes', 'General']`.
+  - Normalizes and repairs output in code; demotes unresolvable reminders to tasks or notes instead of inventing phantom timestamps.
+- [x] **Temporal Grounding & Timezone Injection:**
+  - Injects current ISO datetime and the device timezone into the prompt.
+  - Instructs model never to invent dates/times when speech is vague.
+- [x] **Rolling Context & Deduplication (`src/hooks/useListeningSession.ts`):**
+  - Supplies previous transcript chunk and recent memory titles to extraction.
+  - Deterministic normalized hash deduplication prevents duplicate writes when speech is repeated across chunks.
+  - Saves all entities (`memories`, `tasks`, `reminders`, `events`) and invalidates React Query caches only after real writes.
+- [x] **Honest Firestore Storage (`src/services/storage.ts`):**
+  - Removed all fake `mem-...` and `task-...` local fallback IDs.
+  - Throws typed `StorageError` on failure so errors bubble up honestly.
+  - Strips undefined values via `cleanRecord` before write to comply with Firestore rules.
+  - Stores consistent ISO timestamps for all `createdAt` fields and sorts chat messages by valid timestamps.
+- [x] **Extraction Fixture Diagnostics (`src/services/extractionFixtures.ts`):**
+  - Programmatic verification fixture testing explicit datetime resolution vs vague speech handling.
+
+### E. Reminders & Tasks Feature
 - [x] **Native Date / Time Picker:** Replaced free-text date input with `@react-native-community/datetimepicker` (v9.1.0). Tapping "Set date & time" opens the Android `DatePickerDialog`, then auto-transitions to `TimePickerDialog`. Quick-select preset pills ("Today", "Tomorrow", "Next week") set a `Date` at 9 AM on the respective day and highlight when active. Save stores `time` as a human-readable string (e.g. `Tue, Oct 29 · 5:30 PM`) and `dueAt` as an ISO timestamp in Firestore.
 - [x] **Instant Check / Uncheck:** In [`src/hooks/useTasks.ts`](file:///c:/Users/Abraham/Desktop/Projects/ranti/src/hooks/useTasks.ts), checking or unchecking a reminder optimistically toggles the checkbox and line-through immediately with zero latency using React Query `onMutate` cache updates and rollback on error.
 - [x] **Instant Task Creation:** When saving a reminder, `addTask` inserts the item optimistically into the cache before awaiting the Firestore network response.
