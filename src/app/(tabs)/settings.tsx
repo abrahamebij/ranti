@@ -50,7 +50,7 @@ export default function SettingsScreen() {
         {/* Listening & voice */}
         <View className="px-5 mb-6">
           <Text className="text-sm font-semibold text-foreground mb-2">
-            Listening & voice
+            Listening &amp; voice
           </Text>
           <SettingsRow
             icon="ear-outline"
@@ -107,6 +107,17 @@ export default function SettingsScreen() {
             </Text>
           </View>
           <Text className="text-xs text-muted">Ranti · Version 1.0</Text>
+
+          {__DEV__ && (
+            <TouchableOpacity
+              onPress={() => router.push("/api-check")}
+              style={{ marginTop: 16, paddingVertical: 8 }}
+            >
+              <Text style={{ fontSize: 12, color: colors.muted, textDecorationLine: "underline" }}>
+                Dev: API connection check
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

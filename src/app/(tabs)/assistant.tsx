@@ -19,7 +19,7 @@ const SUGGESTIONS = ["What do I need to do today?", "What does Maya like?"];
 export default function AssistantScreen() {
   const [input, setInput] = useState("");
   const { messages, askQuestion, isThinking } = useChat();
-  const { isListening, toggleListening } = useListeningSession();
+  const { isListening, isProcessing, lastError, toggleListening } = useListeningSession();
 
   const handleSend = async (textToSend?: string) => {
     const text = (textToSend ?? input).trim();
@@ -60,10 +60,18 @@ export default function AssistantScreen() {
           />
           <View>
             <Text className="text-sm font-semibold text-primary">
-              {isListening ? "Background listening on" : "Background listening paused"}
+              {isListening
+                ? isProcessing
+                  ? "Processing..."
+                  : "Background listening on"
+                : "Background listening paused"}
             </Text>
             <Text className="text-xs text-muted">
-              {isListening ? "Saving moments as you go." : "Tap to resume capture."}
+              {lastError
+                ? lastError
+                : isListening
+                  ? "Saving moments as you go."
+                  : "Tap to resume capture."}
             </Text>
           </View>
         </View>
