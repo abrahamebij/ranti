@@ -1,5 +1,5 @@
 import { Ionicons } from "@react-native-vector-icons/ionicons";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import {
   useAudioStream,
   requestRecordingPermissionsAsync,
@@ -21,14 +21,23 @@ import { MetaRealtimeAsrSession } from "../../services/metaRealtimeAsr";
 import { colors } from "../../lib/colors";
 
 export default function AssistantScreen() {
+  const params = useLocalSearchParams<{ memoryId?: string; memoryTitle?: string }>();
   const [input, setInput] = useState("");
   const [isDictating, setIsDictating] = useState(false);
   const [dictationStatus, setDictationStatus] = useState<string | null>(null);
 
-  const { messages, askQuestion, isThinking } = useChat();
+  const { messages, askQuestion, isThinking, error } = useChat();
   const { allMemories } = useMemories();
 
   const dictationSessionRef = useRef<MetaRealtimeAsrSession | null>(null);
+  const handledParamRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (params.memoryTitle && handledParamRef.current !== (params.memoryId || params.memoryTitle)) {
+      handledParamRef.current = params.memoryId || params.memoryTitle;
+      setInput(`What do my notes say about ${params.memoryTitle}?`);
+    }
+  }, [params.memoryTitle, params.memoryId]);
 
   // Buffer handler for live dictation stream
   const onBuffer = useCallback((buffer: { data: ArrayBuffer }) => {
@@ -173,7 +182,42 @@ export default function AssistantScreen() {
                 <Text className="text-2xl font-bold text-foreground leading-tight mb-1">
                   {msg.text}
                 </Text>
-                {msg.sourceMemoryTitle && (
+                {msg.sources && msg.sources.length > 0 ? (
+                  <View className="flex-row flex-wrap gap-2 mt-2">
+                    {msg.sources.map((src) => (
+                      <TouchableOpacity
+                        key={src.id}
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          if (src.type === "memory") {
+                            router.push(`/(tabs)/memories/${src.id}` as never);
+                          }
+                        }}
+                        className="flex-row items-center gap-1.5 bg-surface-muted px-3 py-1.5 rounded-full border border-border"
+                      >
+                        <Ionicons
+                          name={
+                            src.type === "task"
+                              ? "checkbox-outline"
+                              : src.type === "reminder"
+                              ? "alarm-outline"
+                              : src.type === "event"
+                              ? "calendar-outline"
+                              : "layers-outline"
+                          }
+                          size={13}
+                          color={colors.primary}
+                        />
+                        <Text className="text-xs text-primary font-medium" numberOfLines={1}>
+                          From {src.title}
+                        </Text>
+                        {src.type === "memory" && (
+                          <Ionicons name="chevron-forward" size={12} color={colors.primary} />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : msg.sourceMemoryTitle ? (
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => {
@@ -189,7 +233,7 @@ export default function AssistantScreen() {
                     </Text>
                     <Ionicons name="chevron-forward" size={14} color={colors.primary} />
                   </TouchableOpacity>
-                )}
+                ) : null}
               </View>
             )
           )
@@ -199,6 +243,18 @@ export default function AssistantScreen() {
           <View className="flex-row items-center gap-2 mb-4">
             <ActivityIndicator size="small" color={colors.primary} />
             <Text className="text-sm text-muted">Ranti is checking memories...</Text>
+          </View>
+        )}
+
+        {error && (
+          <View className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
+            <View className="flex-row items-center gap-2 mb-1">
+              <Ionicons name="alert-circle" size={16} color="#b91c1c" />
+              <Text className="text-xs font-semibold text-red-700">Unable to get answer</Text>
+            </View>
+            <Text className="text-xs text-red-600">
+              {error instanceof Error ? error.message : "Something went wrong fetching the answer. Please try again."}
+            </Text>
           </View>
         )}
 

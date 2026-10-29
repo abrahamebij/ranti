@@ -59,11 +59,18 @@ export interface ListeningSession {
   status: 'active' | 'paused' | 'stopped';
 }
 
+export interface ChatSourceItem {
+  id: string;
+  title: string;
+  type: 'memory' | 'task' | 'reminder' | 'event';
+}
+
 export interface ChatMessage {
   id: string;
   sender: 'user' | 'assistant';
   text: string;
   createdAt: string;
+  sources?: ChatSourceItem[];
   sourceMemoryTitle?: string;
   sourceMemoryId?: string;
 }

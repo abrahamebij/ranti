@@ -118,7 +118,15 @@ export default function MemoryDetailScreen() {
               label="Ask Ranti about this"
               icon="chatbubble-outline"
               iconPosition="left"
-              onPress={() => router.push("/(tabs)/assistant")}
+              onPress={() =>
+                router.push({
+                  pathname: "/(tabs)/assistant",
+                  params: {
+                    memoryId: memory.id,
+                    memoryTitle: memory.title,
+                  },
+                })
+              }
             />
           </View>
         </>

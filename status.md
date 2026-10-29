@@ -64,7 +64,28 @@ Last Updated: 2026-10-29T19:26:00+01:00
 - [x] **Extraction Fixture Diagnostics (`src/services/extractionFixtures.ts`):**
   - Programmatic verification fixture testing explicit datetime resolution vs vague speech handling.
 
-### E. Reminders & Tasks Feature
+### E. Phase 5: Real Grounded Contextual Recall & Honest Attribution
+- [x] **Comprehensive Recall Context (`src/services/recallContext.ts`):**
+  - Synthesizes grounding context from relevant memories (scored by keyword and recency), open tasks, upcoming reminders, and events.
+  - Injects current ISO timestamp and device timezone into the prompt.
+  - Caps context size to avoid context bloat while providing stable context IDs (`[ID: ...]`).
+- [x] **Schema-Enforced Recall & Source Attribution (`src/services/recallSchema.ts` & `src/services/metaApi.ts`):**
+  - Uses Meta Chat Completions structured output (`json_schema`) enforcing `{ answer: string, sourceIds: string[] }`.
+  - Rigorously validates returned `sourceIds` against provided context items; drops any hallucinations.
+  - System prompt instructs model to answer strictly from provided context and state plainly when no record exists.
+- [x] **Tappable Source Attribution Chips (`src/app/(tabs)/assistant.tsx`):**
+  - Renders verified source chips for each answer with appropriate icons (memory, task, reminder, event).
+  - Tapping a memory chip opens the memory detail screen (`/(tabs)/memories/[id]`).
+- [x] **Memory Detail Integration (`src/app/(tabs)/memories/[id].tsx`):**
+  - "Ask Ranti about this" passes `memoryId` and `memoryTitle` as route parameters to Assistant.
+  - Assistant pre-fills a question grounded in that specific memory.
+- [x] **Loading & Honest Error States (`src/app/(tabs)/assistant.tsx`):**
+  - Shows clear loading state when checking memories.
+  - Displays a readable error banner when network or model queries fail instead of silent drops.
+- [x] **Strict Code Quality & Size Constraints:**
+  - Every file in `src/` verified under 350 lines of code.
+
+### F. Reminders & Tasks Feature
 - [x] **Native Date / Time Picker:** Replaced free-text date input with `@react-native-community/datetimepicker` (v9.1.0). Tapping "Set date & time" opens the Android `DatePickerDialog`, then auto-transitions to `TimePickerDialog`. Quick-select preset pills ("Today", "Tomorrow", "Next week") set a `Date` at 9 AM on the respective day and highlight when active. Save stores `time` as a human-readable string (e.g. `Tue, Oct 29 · 5:30 PM`) and `dueAt` as an ISO timestamp in Firestore.
 - [x] **Instant Check / Uncheck:** In [`src/hooks/useTasks.ts`](file:///c:/Users/Abraham/Desktop/Projects/ranti/src/hooks/useTasks.ts), checking or unchecking a reminder optimistically toggles the checkbox and line-through immediately with zero latency using React Query `onMutate` cache updates and rollback on error.
 - [x] **Instant Task Creation:** When saving a reminder, `addTask` inserts the item optimistically into the cache before awaiting the Firestore network response.

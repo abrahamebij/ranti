@@ -1,10 +1,12 @@
 /**
  * Meta Model API service with strict JSON Schema structured output
- * and temporal grounding.
+ * for extraction and conversational recall.
  */
 
-import { ExtractedInsights, Memory, MemoryCategory } from '../types';
+import { ExtractedInsights, MemoryCategory } from '../types';
 import { EXTRACTION_JSON_SCHEMA } from './extractionSchema';
+import { GroundingContext } from './recallContext';
+import { RECALL_JSON_SCHEMA, RecallResult, validateAndFormatRecall } from './recallSchema';
 
 const BASE_URL =
   process.env.EXPO_PUBLIC_META_API_ENDPOINT ?? 'https://api.meta.ai/v1';
@@ -260,29 +262,34 @@ ${prevChunk}`;
   },
 
   /**
-   * Conversational recall grounded in stored memories using muse-spark-1.3.
+   * Conversational recall grounded strictly across real memories, tasks,
+   * reminders, and calendar events using muse-spark-1.3 with structured schema output.
    */
-  async answerQuestion(
+  async answerQuestionWithContext(
     question: string,
-    memories: Memory[]
-  ): Promise<{ text: string; sourceMemory?: Memory }> {
-    if (memories.length === 0) {
+    context: GroundingContext
+  ): Promise<RecallResult> {
+    if (context.items.length === 0) {
       return {
-        text: "I don't have any stored memories yet. Start a listening session and I will begin capturing information for you.",
+        text: "I don't have a record of that in your memories or tasks yet.",
+        sources: [],
       };
     }
 
-    const memoryContext = memories
-      .map((m, i) => `[${i + 1}] ${m.title} (${m.category}): ${m.content}`)
-      .join('\n');
+    const systemPrompt = `You are Ranti, a calm, supportive, and concise memory assistant for someone with memory difficulties.
 
-    const sourceMemory = memories.find(
-      (m) =>
-        question.toLowerCase().includes(m.title.toLowerCase()) ||
-        m.content
-          .toLowerCase()
-          .includes(question.split(' ').slice(0, 4).join(' ').toLowerCase())
-    );
+Current Date/Time: ${context.nowIso}
+Timezone: ${context.timezone}
+
+Answer the user's question using ONLY the provided database records below.
+CRITICAL RULES:
+1. Ground your answer strictly in these records.
+2. If the user asks about today's tasks or schedule, check the [TASK] and [EVENT] records against the current date.
+3. If the answer is NOT in the records, state plainly: "I don't have a record of that in your memories or tasks." Never invent or extrapolate facts.
+4. In "sourceIds", include ONLY the exact record IDs (e.g. from [ID: ...]) that you directly used to construct the answer. If no records were used, return an empty array [].
+
+Database Records:
+${context.formattedContext}`;
 
     const data = await metaRequest<ChatCompletionResponse>(
       '/chat/completions',
@@ -292,24 +299,19 @@ ${prevChunk}`;
         body: JSON.stringify({
           model: 'muse-spark-1.3',
           messages: [
-            {
-              role: 'system',
-              content: `You are Ranti, a calm and concise memory assistant for someone with memory difficulties.
-Answer the user's question using ONLY the memories listed below.
-If the answer is not in the memories, say exactly: "I couldn't find that in your memories."
-Do not guess, invent, or add information not present in the memories.
-
-Memories:
-${memoryContext}`,
-            },
+            { role: 'system', content: systemPrompt },
             { role: 'user', content: question },
           ],
+          response_format: {
+            type: 'json_schema',
+            json_schema: RECALL_JSON_SCHEMA,
+          },
         }),
       }
     );
 
-    const text = data.choices?.[0]?.message?.content;
-    if (!text) {
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) {
       throw new MetaApiError(
         'muse-spark-1.3 returned empty content.',
         '/chat/completions',
@@ -318,6 +320,19 @@ ${memoryContext}`,
       );
     }
 
-    return { text, sourceMemory };
+    let parsed: any;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      throw new MetaApiError(
+        `muse-spark-1.3 returned invalid JSON: ${content.slice(0, 200)}`,
+        '/chat/completions',
+        undefined,
+        'malformed_json',
+        content
+      );
+    }
+
+    return validateAndFormatRecall(parsed, context);
   },
 };
