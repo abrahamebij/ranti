@@ -1,6 +1,6 @@
 # Ranti — Project Status
 
-Last Updated: 2026-10-29T18:54:00+01:00
+Last Updated: 2026-10-29T19:26:00+01:00
 
 ## 1. Project Overview & Target
 - **App:** Ranti — AI-powered personal memory assistant for people experiencing memory difficulties.
@@ -15,18 +15,22 @@ Last Updated: 2026-10-29T18:54:00+01:00
 ## 2. Completed Architecture & Milestones
 
 ### A. Phase 1: Meta Model API Integration & Error Handling
-- [x] **Base URL & Endpoint Fix:** Updated base URL to `https://api.meta.ai/v1` and file ASR route to `POST /v1/asr/transcribe` with multipart form upload (`model="muse-voice-transcribe-1.0"`, `file`).
-- [x] **Typed Error Architecture (`MetaApiError`):** Created structured error handling covering timeouts, 401/403 bad keys, 429 rate limits, 4xx schema/validation errors, 5xx server failures, and malformed JSON.
+- [x] **Meta Cookbook Contract for Muse Voice Transcribe:** Conformed exact multipart format (`request` JSON part + `audio` WAV part). Eliminated legacy `file` and `model` multipart fields.
+- [x] **WAV Header Pre-Validation (`validateWavHeader`):** Validates RIFF/WAVE container magic strings, uncompressed PCM format code (1), mono channels (1), 16000/24000 Hz sample rate, 16-bit depth, 32 MB max size, and 10-minute maximum duration before attempting network upload.
+- [x] **Three Multipart Upload Fallbacks:**
+  1. React Native FormData with `{ string, type: 'application/json' }` part and `{ uri, name: 'audio.wav', type: 'audio/wav' }`.
+  2. Standards-compliant FormData with `new Blob([json], { type: 'application/json' })`.
+  3. Native `expo-file-system` `uploadAsync` multipart fallback.
+- [x] **Full Response Typing & Mode Support:** Added `AsrTranscribeResponse` with `sessionId`, `transcript`, `audioDurationMs`, and `turns` (`startMs`, `transcript`, `speaker`). Default mode `PUSH_TO_TALK` with support for `DIARIZATION` and `ENDPOINTING`. Supports `keywords` and `languageBias`.
+- [x] **Base URL & Endpoint Fix:** Updated base URL to `https://api.meta.ai/v1` and file ASR route to `POST /v1/asr/transcribe`.
+- [x] **Typed Error Architecture (`MetaApiError`):** Created structured error handling covering timeouts, 400 (malformed/too long), 401/403 bad keys, 404, 413 (payload too large), 429 rate limits, 5xx server failures, and malformed JSON.
 - [x] **No Silent Failures:** Eliminated all empty-string/empty-array swallow catches in [`src/services/metaApi.ts`](file:///c:/Users/Abraham/Desktop/Projects/ranti/src/services/metaApi.ts). Errors propagate cleanly to callers.
-- [x] **Dev-Only API Check Screen (`src/app/api-check.tsx`):** Added diagnostic screen accessible in Settings (when `__DEV__ === true`) to test live Chat Completions and ASR transcription against Meta's servers with latency, raw status, and full response/error logging.
-- [x] **Android File Upload Pipeline:** Integrated `expo-file-system/legacy` with local `file://` cache write, standard multipart fetch, and automatic fallback to `FileSystem.uploadAsync` for native Android compatibility.
+- [x] **Dev-Only API Check Screen (`src/app/api-check.tsx`):** Diagnostic screen with byte-aligned valid 16kHz mono WAV sample testing live Chat Completions and ASR transcription with latency, raw status, and full response/error logging.
 - [x] **Environment Template:** Updated [`.env.example`](file:///c:/Users/Abraham/Desktop/Projects/ranti/.env.example) with the official base URL and reminder to set a spend limit on the Meta billing page.
 
 ### B. Listening & Audio Pipeline
-- [x] **Ambient Recording (`src/hooks/useListeningSession.ts`):** Rolling 30s segments with last partial segment emitted on stop.
-- [x] **Silent Chunk Discard:** Rejects silent chunks under threshold to prevent useless model invocation.
-- [x] **Permissions:** Requests Android microphone permissions before starting capture session.
-- [x] **Pipeline Error Surface:** Exposed `lastError` in the listening session to notify users when transcription or extraction encounters an issue.
+- [ ] **Voice Pipeline Reset:** Stripped ambient capture work back to the clean baseline event-listener shell (`src/services/audioRecorder.ts` and `src/hooks/useListeningSession.ts`) so you can implement the audio recording yourself.
+- [x] **Pipeline Interface Maintained:** `useListeningSession` retains the clean subscription and start/stop controls hooked up to Firestore and React Query.
 
 ### C. Reminders & Tasks Feature
 - [x] **Native Date / Time Picker:** Replaced free-text date input with `@react-native-community/datetimepicker` (v9.1.0). Tapping "Set date & time" opens the Android `DatePickerDialog`, then auto-transitions to `TimePickerDialog`. Quick-select preset pills ("Today", "Tomorrow", "Next week") set a `Date` at 9 AM on the respective day and highlight when active. Save stores `time` as a human-readable string (e.g. `Tue, Oct 29 · 5:30 PM`) and `dueAt` as an ISO timestamp in Firestore.
