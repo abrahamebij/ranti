@@ -13,11 +13,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Card } from "../../components/Card";
 import { SettingsRow } from "../../components/SettingsRow";
 import { Switch } from "../../components/Switch";
+import { useListeningSession } from "../../hooks/useListeningSession";
 import { userSettingsService, UserSettings } from "../../services/userSettings";
 import { colors } from "../../lib/colors";
 
 export default function SettingsScreen() {
-  const [backgroundListening, setBackgroundListening] = useState(true);
+  const { isListening, startListening, stopListening } = useListeningSession();
   const [notifications, setNotifications] = useState(true);
   const [deliveryPreference, setDeliveryPreference] = useState<'audio' | 'notification'>('notification');
   const [settings, setSettings] = useState<UserSettings>({
@@ -38,6 +39,14 @@ export default function SettingsScreen() {
     });
   }, []);
 
+  const handleListeningToggle = async () => {
+    if (isListening) {
+      await stopListening();
+    } else {
+      await startListening();
+    }
+  };
+
   const saveName = async () => {
     const updated = await userSettingsService.saveSettings({
       displayName: newName.trim() || "Friend",
@@ -47,9 +56,9 @@ export default function SettingsScreen() {
   };
 
   const toggleDeliveryPreference = async () => {
-    const nextPref = deliveryPreference === 'audio' ? 'notification' : 'audio';
-    setDeliveryPreference(nextPref);
-    const updated = await userSettingsService.saveSettings({ deliveryPreference: nextPref });
+    const next = deliveryPreference === 'audio' ? 'notification' : 'audio';
+    setDeliveryPreference(next);
+    const updated = await userSettingsService.saveSettings({ deliveryPreference: next });
     setSettings(updated);
   };
 
@@ -110,11 +119,11 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="ear-outline"
             title="Background listening"
-            subtitle={`${backgroundListening ? "On" : "Off"} · Save moments as you go`}
+            subtitle={`${isListening ? "On" : "Off"} · Save moments as you go`}
             trailing={
               <Switch
-                value={backgroundListening}
-                onValueChange={setBackgroundListening}
+                value={isListening}
+                onValueChange={handleListeningToggle}
               />
             }
           />

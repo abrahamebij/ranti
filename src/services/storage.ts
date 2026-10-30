@@ -4,6 +4,7 @@ import {
   getDocs,
   addDoc,
   updateDoc,
+  deleteDoc,
   query,
   orderBy,
 } from 'firebase/firestore';
@@ -69,6 +70,32 @@ export const storageService = {
       };
     } catch (e) {
       throw new StorageError(`Failed to save memory: ${e instanceof Error ? e.message : String(e)}`, 'memories', e);
+    }
+  },
+
+  async updateMemory(memoryId: string, patch: Partial<Memory>): Promise<void> {
+    if (!db) throw new StorageError('Firestore database not initialized', 'memories');
+    try {
+      const docRef = doc(db, 'users', defaultUserId, 'memories', memoryId);
+      const cleanData = cleanRecord({
+        ...(patch.title !== undefined ? { title: patch.title } : {}),
+        ...(patch.content !== undefined ? { content: patch.content } : {}),
+        ...(patch.category !== undefined ? { category: patch.category } : {}),
+        ...(patch.people !== undefined ? { people: patch.people } : {}),
+      });
+      await updateDoc(docRef, cleanData);
+    } catch (e) {
+      throw new StorageError(`Failed to update memory: ${e instanceof Error ? e.message : String(e)}`, 'memories', e);
+    }
+  },
+
+  async deleteMemory(memoryId: string): Promise<void> {
+    if (!db) throw new StorageError('Firestore database not initialized', 'memories');
+    try {
+      const docRef = doc(db, 'users', defaultUserId, 'memories', memoryId);
+      await deleteDoc(docRef);
+    } catch (e) {
+      throw new StorageError(`Failed to delete memory: ${e instanceof Error ? e.message : String(e)}`, 'memories', e);
     }
   },
 

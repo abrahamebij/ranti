@@ -111,7 +111,33 @@ Do not install anything, tell the user what to install
 - [x] **Honest Delivery Modes in Settings (`src/app/(tabs)/settings.tsx`):**
   - Honest copy regarding spoken delivery: reads aloud when app is open, delivers high-priority text notification when app is backgrounded/closed.
 
-### G. Historical Reminders & Tasks Feature
+### H. Phase 7: Every visible control does what it says
+- [x] **Listening switch bound to real state (`src/app/(tabs)/settings.tsx` + `src/services/audioRecorder.ts`):**
+  - Settings listening switch uses `useListeningSession` — starts/stops real recording both ways.
+  - `audioRecorder` now broadcasts state changes via `onStateChange()` so every consumer (`useListeningSession`, Settings) stays in sync without polling.
+- [x] **All notification/delivery settings persisted (`src/services/userSettings.ts`):**
+  - Notifications switch and Spoken audio delivery toggle both persist to local settings and read back on mount.
+- [x] **Memory detail ellipsis implemented (`src/app/(tabs)/memories/[id].tsx`):**
+  - Tapping ellipsis opens a bottom-sheet action menu.
+  - **Edit**: modal with title + content `TextInput`s, saves via `updateMemory` → Firestore, survives restart.
+  - **Delete**: `Alert.alert` confirmation, calls `deleteMemory` → Firestore `deleteDoc`, navigates back on success.
+  - Optimistic cache update for delete (instant UI feedback with rollback on error).
+- [x] **`useMemories` extended with `updateMemory` and `deleteMemory` mutations.**
+- [x] **`storage.ts` extended with `updateMemory()` and `deleteMemory()` using Firestore `updateDoc` / `deleteDoc`.**
+- [x] **No-op handler audit — 0 empty handlers remain in `src/`:**
+  - Removed no-op ellipsis from assistant.tsx header.
+  - Fixed `backgroundListening` switch → `handleListeningToggle` (real microphone control).
+  - Fixed notifications + delivery preference → real `saveSettings` writes.
+- [x] **Today screen loading, empty and error states (`src/app/(tabs)/today.tsx`):**
+  - Shows `ActivityIndicator` while any query loads.
+  - Shows error banner if any query fails.
+  - Up Next card now picks the soonest upcoming **reminder** or **task** (whichever is earlier), with appropriate icon.
+  - All copy derived from real data — no hardcoded demo strings.
+- [x] **Reminders screen loading and error states (`src/app/(tabs)/reminders.tsx`):**
+  - Shows `ActivityIndicator` while fetching.
+  - Shows error banner on fetch failure.
+
+### I. Historical Reminders & Tasks Feature
 
 - [x] **Native Date / Time Picker:** Replaced free-text date input with `@react-native-community/datetimepicker` (v9.1.0). Tapping "Set date & time" opens the Android `DatePickerDialog`, then auto-transitions to `TimePickerDialog`. Quick-select preset pills ("Today", "Tomorrow", "Next week") set a `Date` at 9 AM on the respective day and highlight when active. Save stores `time` as a human-readable string (e.g. `Tue, Oct 29 · 5:30 PM`) and `dueAt` as an ISO timestamp in Firestore.
 - [x] **Instant Check / Uncheck:** In [`src/hooks/useTasks.ts`](file:///c:/Users/Abraham/Desktop/Projects/ranti/src/hooks/useTasks.ts), checking or unchecking a reminder optimistically toggles the checkbox and line-through immediately with zero latency using React Query `onMutate` cache updates and rollback on error.

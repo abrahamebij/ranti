@@ -20,6 +20,32 @@ export function useMemories(filter?: MemoryCategory | 'All') {
     },
   });
 
+  const updateMemoryMutation = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<Memory> }) =>
+      storageService.updateMemory(id, patch),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: MEMORIES_QUERY_KEY });
+    },
+  });
+
+  const deleteMemoryMutation = useMutation({
+    mutationFn: (id: string) => storageService.deleteMemory(id),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: MEMORIES_QUERY_KEY });
+      const prev = queryClient.getQueryData<Memory[]>(MEMORIES_QUERY_KEY);
+      queryClient.setQueryData<Memory[]>(MEMORIES_QUERY_KEY, (old = []) =>
+        old.filter((m) => m.id !== id)
+      );
+      return { prev };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(MEMORIES_QUERY_KEY, ctx.prev);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: MEMORIES_QUERY_KEY });
+    },
+  });
+
   const memories = query.data ?? [];
 
   const filteredMemories =
@@ -33,6 +59,9 @@ export function useMemories(filter?: MemoryCategory | 'All') {
     allMemories: memories,
     addMemory: addMemoryMutation.mutateAsync,
     isAdding: addMemoryMutation.isPending,
+    updateMemory: updateMemoryMutation.mutateAsync,
+    deleteMemory: deleteMemoryMutation.mutateAsync,
+    isDeleting: deleteMemoryMutation.isPending,
   };
 }
 

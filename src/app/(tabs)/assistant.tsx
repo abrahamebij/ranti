@@ -141,16 +141,11 @@ export default function AssistantScreen() {
       edges={["top"]}
     >
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 pt-2 pb-3">
-        <View>
-          <Text className="text-2xl font-bold text-foreground">Ranti</Text>
-          <Text className="text-sm text-foreground-secondary">
-            A little help remembering.
-          </Text>
-        </View>
-        <TouchableOpacity activeOpacity={0.7}>
-          <Ionicons name="ellipsis-horizontal" size={22} color={colors.foreground} />
-        </TouchableOpacity>
+      <View className="px-5 pt-2 pb-3">
+        <Text className="text-2xl font-bold text-foreground">Ranti</Text>
+        <Text className="text-sm text-foreground-secondary">
+          A little help remembering.
+        </Text>
       </View>
 
       <ScrollView

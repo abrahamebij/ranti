@@ -2,12 +2,12 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { metaApiService } from '../services/metaApi';
 import { storageService } from '../services/storage';
-import { reminderScheduler } from '../services/reminderScheduler';
 import { audioRecorder, AudioSegment } from '../services/audioRecorder';
+import { reminderScheduler } from '../services/reminderScheduler';
 import { MEMORIES_QUERY_KEY } from './useMemories';
 import { TASKS_QUERY_KEY } from './useTasks';
+import { REMINDERS_QUERY_KEY } from './useReminders';
 
-export const REMINDERS_QUERY_KEY = ['reminders'];
 export const EVENTS_QUERY_KEY = ['events'];
 
 function normalizeText(text: string): string {
@@ -15,7 +15,7 @@ function normalizeText(text: string): string {
 }
 
 export function useListeningSession() {
-  const [isListening, setIsListening] = useState(false);
+  const [isListening, setIsListening] = useState(audioRecorder.isRecording());
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
 
@@ -23,6 +23,13 @@ export function useListeningSession() {
 
   const previousTranscriptRef = useRef<string>('');
   const recentSavedHashesRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const unsub = audioRecorder.onStateChange((recording) => {
+      setIsListening(recording);
+    });
+    return unsub;
+  }, []);
 
   const processTranscript = useCallback(
     async (transcript: string) => {

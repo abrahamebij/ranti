@@ -1,6 +1,7 @@
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useState } from "react";
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@react-native-vector-icons/ionicons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../../components/Button";
 import { FilterPill } from "../../components/FilterPill";
@@ -56,8 +57,7 @@ export default function RemindersScreen() {
   const [newTitle, setNewTitle] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [pickerStep, setPickerStep] = useState<PickerStep>("idle");
-  const { reminders, toggleReminder, addReminder } = useReminders(activeFilter);
-
+  const { reminders, toggleReminder, addReminder, isLoading, isError } = useReminders(activeFilter);
   const resetForm = () => {
     setNewTitle("");
     setSelectedDate(null);
@@ -160,6 +160,21 @@ export default function RemindersScreen() {
             </Text>
             <Text className="text-xs text-muted">{reminders.length} items</Text>
           </View>
+
+          {isLoading && (
+            <View className="items-center py-6">
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          )}
+
+          {isError && (
+            <View className="bg-red-50 border border-red-200 rounded-xl p-3 mb-3">
+              <View className="flex-row items-center gap-2">
+                <Ionicons name="alert-circle" size={14} color="#b91c1c" />
+                <Text className="text-xs text-red-700">Could not load reminders. Check your connection.</Text>
+              </View>
+            </View>
+          )}
 
           {/* Creation card */}
           {isAdding && (

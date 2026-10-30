@@ -126,5 +126,6 @@ export function useReminders(filter?: 'All' | 'Upcoming' | 'Completed') {
     toggleReminder: toggleReminderMutation.mutate,
     addReminder: addReminderMutation.mutateAsync,
     isToggling: toggleReminderMutation.isPending,
-  };
-}
+    isLoading: query.isLoading,
+    isError: query.isError,
+  };}
