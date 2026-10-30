@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../../components/Button";
 import { FilterPill } from "../../components/FilterPill";
 import { TaskItem } from "../../components/TaskItem";
-import { useTasks } from "../../hooks/useTasks";
+import { useReminders } from "../../hooks/useReminders";
 import { colors } from "../../lib/colors";
 
 type Filter = "All" | "Upcoming" | "Completed";
@@ -26,7 +26,7 @@ function formatDate(date: Date): string {
 
 function startOfToday(): Date {
   const d = new Date();
-  d.setHours(9, 0, 0, 0);
+  d.setHours(d.getHours() + 1, 0, 0, 0);
   return d;
 }
 
@@ -45,8 +45,8 @@ function startOfNextWeek(): Date {
 }
 
 const DATE_PRESETS: { label: string; getValue: () => Date }[] = [
-  { label: "Today", getValue: startOfToday },
-  { label: "Tomorrow", getValue: startOfTomorrow },
+  { label: "In 1 hour", getValue: startOfToday },
+  { label: "Tomorrow 9 AM", getValue: startOfTomorrow },
   { label: "Next week", getValue: startOfNextWeek },
 ];
 
@@ -56,7 +56,7 @@ export default function RemindersScreen() {
   const [newTitle, setNewTitle] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [pickerStep, setPickerStep] = useState<PickerStep>("idle");
-  const { tasks, toggleTask, addTask } = useTasks(activeFilter);
+  const { reminders, toggleReminder, addReminder } = useReminders(activeFilter);
 
   const resetForm = () => {
     setNewTitle("");
@@ -68,10 +68,15 @@ export default function RemindersScreen() {
   const handleSaveReminder = async () => {
     const title = newTitle.trim();
     if (!title) return;
-    const time = selectedDate ? formatDate(selectedDate) : "Scheduled";
-    const dueAt = selectedDate ? selectedDate.toISOString() : undefined;
+    const targetDate = selectedDate ?? new Date(Date.now() + 2 * 60 * 1000); // Default 2 min ahead if unspecified
+    const scheduledAt = targetDate.toISOString();
     resetForm();
-    await addTask({ title, time, dueAt, completed: false });
+    await addReminder({
+      title,
+      scheduledAt,
+      status: "pending",
+      deliveryPreference: "notification",
+    });
   };
 
   const handlePickerChange = (event: DateTimePickerEvent, date?: Date) => {
@@ -82,15 +87,13 @@ export default function RemindersScreen() {
     if (!date) return;
 
     if (pickerStep === "date") {
-      // Merge just the date portion into selectedDate, preserve existing time or default 09:00
-      const base = selectedDate ?? startOfToday();
+      const base = selectedDate ?? new Date();
       const merged = new Date(date);
       merged.setHours(base.getHours(), base.getMinutes(), 0, 0);
       setSelectedDate(merged);
       setPickerStep("time");
     } else if (pickerStep === "time") {
-      // Merge time into the already-set date
-      const base = selectedDate ?? startOfToday();
+      const base = selectedDate ?? new Date();
       const merged = new Date(base);
       merged.setHours(date.getHours(), date.getMinutes(), 0, 0);
       setSelectedDate(merged);
@@ -108,7 +111,8 @@ export default function RemindersScreen() {
     return (
       selectedDate.getFullYear() === preset.getFullYear() &&
       selectedDate.getMonth() === preset.getMonth() &&
-      selectedDate.getDate() === preset.getDate()
+      selectedDate.getDate() === preset.getDate() &&
+      selectedDate.getHours() === preset.getHours()
     );
   };
 
@@ -117,10 +121,9 @@ export default function RemindersScreen() {
       style={{ flex: 1, backgroundColor: colors.background, paddingTop: 8 }}
       edges={["top"]}
     >
-      {/* Native date/time picker — rendered outside scroll so it floats */}
       {pickerStep !== "idle" && (
         <DateTimePicker
-          value={selectedDate ?? startOfToday()}
+          value={selectedDate ?? new Date()}
           mode={pickerStep}
           display="default"
           onChange={handlePickerChange}
@@ -153,9 +156,9 @@ export default function RemindersScreen() {
         <View className="px-5 mb-4">
           <View className="flex-row items-center justify-between mb-2">
             <Text className="text-sm font-semibold text-foreground">
-              {activeFilter === "All" ? "All Tasks" : activeFilter}
+              {activeFilter === "All" ? "All Reminders" : activeFilter}
             </Text>
-            <Text className="text-xs text-muted">{tasks.length} items</Text>
+            <Text className="text-xs text-muted">{reminders.length} items</Text>
           </View>
 
           {/* Creation card */}
@@ -236,28 +239,36 @@ export default function RemindersScreen() {
             </View>
           )}
 
-          {/* Tasks list with optimistic check/uncheck */}
-          {tasks.map((task, i) => (
-            <TaskItem
-              key={task.id}
-              title={task.title}
-              subtitle={task.dueAt}
-              time={task.time || "Scheduled"}
-              completed={task.completed}
-              onToggle={() => toggleTask(task.id)}
-              showDivider={i < tasks.length - 1}
-            />
-          ))}
+          {/* Reminders list with notification scheduling integration */}
+          {reminders.map((reminder, i) => {
+            const dateObj = new Date(reminder.scheduledAt);
+            const timeStr = isNaN(dateObj.getTime())
+              ? "Scheduled"
+              : formatDate(dateObj);
+            const isCompleted = reminder.status === "delivered";
 
-          {tasks.length === 0 && !isAdding && (
+            return (
+              <TaskItem
+                key={reminder.id}
+                title={reminder.title}
+                subtitle={reminder.scheduledAt}
+                time={timeStr}
+                completed={isCompleted}
+                onToggle={() => toggleReminder(reminder.id)}
+                showDivider={i < reminders.length - 1}
+              />
+            );
+          })}
+
+          {reminders.length === 0 && !isAdding && (
             <Text className="text-sm text-muted py-8 text-center">
-              No {activeFilter.toLowerCase()} tasks found in your database.
+              No {activeFilter.toLowerCase()} reminders found in your database.
             </Text>
           )}
         </View>
       </ScrollView>
 
-      {/* Add reminder */}
+      {/* Add reminder button */}
       <View className="px-5 pb-6 pt-2 bg-background border-t border-border">
         <Button
           label="Add reminder"

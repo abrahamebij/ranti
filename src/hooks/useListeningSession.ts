@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { metaApiService } from '../services/metaApi';
 import { storageService } from '../services/storage';
+import { reminderScheduler } from '../services/reminderScheduler';
 import { audioRecorder, AudioSegment } from '../services/audioRecorder';
 import { MEMORIES_QUERY_KEY } from './useMemories';
 import { TASKS_QUERY_KEY } from './useTasks';
@@ -70,7 +71,11 @@ export function useListeningSession() {
           const hash = normalizeText(rem.title + (rem.scheduledAt || ''));
           if (!recentSavedHashesRef.current.has(hash)) {
             recentSavedHashesRef.current.add(hash);
-            await storageService.addReminder(rem);
+            const notifId = await reminderScheduler.scheduleReminder(rem);
+            await storageService.addReminder({
+              ...rem,
+              notificationId: notifId || undefined,
+            });
             hasNewWrites = true;
           }
         }

@@ -21,7 +21,12 @@
       "navigationBar": {
         "backgroundColor": "#F8F8F8",
         "barStyle": "dark-content"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "output": "static",
@@ -44,6 +49,13 @@
         {
           "microphonePermission": "Ranti needs microphone access to listen and capture memories.",
           "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-icon-monochrome.png",
+          "color": "#166e3d"
         }
       ]
     ],

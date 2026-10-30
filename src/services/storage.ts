@@ -156,6 +156,8 @@ export const storageService = {
         scheduledAt: reminder.scheduledAt,
         status: reminder.status || 'pending',
         deliveryPreference: reminder.deliveryPreference || 'notification',
+        notificationId: reminder.notificationId || null,
+        sourceMemoryIds: reminder.sourceMemoryIds || [],
         userId: defaultUserId,
         createdAt,
       });
@@ -169,6 +171,23 @@ export const storageService = {
       };
     } catch (e) {
       throw new StorageError(`Failed to save reminder: ${e instanceof Error ? e.message : String(e)}`, 'reminders', e);
+    }
+  },
+
+  async updateReminder(reminderId: string, patch: Partial<Reminder>): Promise<void> {
+    if (!db) throw new StorageError('Firestore database not initialized', 'reminders');
+    try {
+      const docRef = doc(db, 'users', defaultUserId, 'reminders', reminderId);
+      const cleanData = cleanRecord({
+        ...(patch.title !== undefined ? { title: patch.title } : {}),
+        ...(patch.scheduledAt !== undefined ? { scheduledAt: patch.scheduledAt } : {}),
+        ...(patch.status !== undefined ? { status: patch.status } : {}),
+        ...(patch.deliveryPreference !== undefined ? { deliveryPreference: patch.deliveryPreference } : {}),
+        ...(patch.notificationId !== undefined ? { notificationId: patch.notificationId } : {}),
+      });
+      await updateDoc(docRef, cleanData);
+    } catch (e) {
+      throw new StorageError(`Failed to update reminder: ${e instanceof Error ? e.message : String(e)}`, 'reminders', e);
     }
   },
 

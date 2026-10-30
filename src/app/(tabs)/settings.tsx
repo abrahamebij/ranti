@@ -19,9 +19,12 @@ import { colors } from "../../lib/colors";
 export default function SettingsScreen() {
   const [backgroundListening, setBackgroundListening] = useState(true);
   const [notifications, setNotifications] = useState(true);
+  const [deliveryPreference, setDeliveryPreference] = useState<'audio' | 'notification'>('notification');
   const [settings, setSettings] = useState<UserSettings>({
     isOnboarded: true,
     displayName: "Friend",
+    deliveryPreference: 'notification',
+    notificationsEnabled: true,
   });
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState("");
@@ -30,6 +33,8 @@ export default function SettingsScreen() {
     userSettingsService.getSettings().then((s) => {
       setSettings(s);
       setNewName(s.displayName);
+      if (s.deliveryPreference) setDeliveryPreference(s.deliveryPreference);
+      if (s.notificationsEnabled !== undefined) setNotifications(s.notificationsEnabled);
     });
   }, []);
 
@@ -39,6 +44,19 @@ export default function SettingsScreen() {
     });
     setSettings(updated);
     setIsEditingName(false);
+  };
+
+  const toggleDeliveryPreference = async () => {
+    const nextPref = deliveryPreference === 'audio' ? 'notification' : 'audio';
+    setDeliveryPreference(nextPref);
+    const updated = await userSettingsService.saveSettings({ deliveryPreference: nextPref });
+    setSettings(updated);
+  };
+
+  const toggleNotifications = async (val: boolean) => {
+    setNotifications(val);
+    const updated = await userSettingsService.saveSettings({ notificationsEnabled: val });
+    setSettings(updated);
   };
 
   const initials = settings.displayName
@@ -102,9 +120,18 @@ export default function SettingsScreen() {
           />
           <SettingsRow
             icon="volume-medium-outline"
-            title="Audio delivery"
-            subtitle="Play replies when asked"
-            onPress={() => {}}
+            title="Spoken audio delivery"
+            subtitle={
+              deliveryPreference === "audio"
+                ? "Reads reminders aloud when app is open (shows text notification when closed)"
+                : "Text notifications only"
+            }
+            trailing={
+              <Switch
+                value={deliveryPreference === "audio"}
+                onValueChange={toggleDeliveryPreference}
+              />
+            }
           />
           <SettingsRow
             icon="mic-outline"
@@ -125,7 +152,7 @@ export default function SettingsScreen() {
             title="Notifications"
             subtitle={`${notifications ? "On" : "Off"} · Reminders and tasks`}
             trailing={
-              <Switch value={notifications} onValueChange={setNotifications} />
+              <Switch value={notifications} onValueChange={toggleNotifications} />
             }
             showDivider={false}
           />

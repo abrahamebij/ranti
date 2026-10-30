@@ -1,8 +1,10 @@
 # Ranti — Project Status
 
 Last Updated: 2026-10-29T19:26:00+01:00
+Do not install anything, tell the user what to install
 
 ## 1. Project Overview & Target
+
 - **App:** Ranti — AI-powered personal memory assistant for people experiencing memory difficulties.
 - **Platform:** Android-first, Expo SDK 57 / React Native 0.86 with Expo Router. Target device: physical Android.
 - **Hackathon:** Meta Global AI Developer Hackathon (Deadline: Nov 4, 9:00 PM ET).
@@ -15,6 +17,7 @@ Last Updated: 2026-10-29T19:26:00+01:00
 ## 2. Completed Architecture & Milestones
 
 ### A. Phase 1: Meta Model API Integration & Error Handling
+
 - [x] **Realtime WebSocket ASR Client (`src/services/metaRealtimeAsr.ts`):** Created native WebSocket streaming client targeting `wss://api.meta.ai/v1/asr/realtime`. Sends JSON handshake frame with Bearer token, receives session acknowledgement, streams binary raw PCM frames, and receives live transcript events until `endStream` half-close.
 - [x] **Dev-Only API Check Screen (`src/app/api-check.tsx`):** Updated to test both live Chat Completions and the live WebSocket handshake / PCM stream directly from the device.
 - [x] **Base URL & Endpoint Fix:** Base URL set to `https://api.meta.ai/v1` for completions and `wss://api.meta.ai/v1/asr/realtime` for streaming ASR.
@@ -23,10 +26,12 @@ Last Updated: 2026-10-29T19:26:00+01:00
 - [x] **Environment Template:** Updated [`.env.example`](file:///c:/Users/Abraham/Desktop/Projects/ranti/.env.example) with official endpoints and spend limit notices.
 
 ### B. Listening & Audio Pipeline
+
 - [ ] **Voice Pipeline Reset:** Stripped ambient capture work back to the clean baseline event-listener shell (`src/services/audioRecorder.ts` and `src/hooks/useListeningSession.ts`) so you can implement the audio recording yourself.
 - [x] **Pipeline Interface Maintained:** `useListeningSession` retains the clean subscription and start/stop controls hooked up to Firestore and React Query.
 
 ### C. Phase 3: Real Onboarding, Assistant Dictation & Identity Decoupling
+
 - [x] **Real Sound Check & Voice Setup (`src/app/voice-setup.tsx`):**
   - Prompts for real Android microphone permissions.
   - Live metering waveform and running timer during recording.
@@ -45,6 +50,7 @@ Last Updated: 2026-10-29T19:26:00+01:00
   - Suggestions dynamically reference stored memories or fallback to neutral generic questions.
 
 ### D. Phase 4: Valid Structured Extraction, Honest Saves & Temporal Grounding
+
 - [x] **Schema-Enforced Extraction (`src/services/extractionSchema.ts` & `src/services/metaApi.ts`):**
   - Integrated Meta's `json_schema` response format with strict validation rules.
   - Constrained categories strictly to `['Plans', 'People', 'Notes', 'General']`.
@@ -65,6 +71,7 @@ Last Updated: 2026-10-29T19:26:00+01:00
   - Programmatic verification fixture testing explicit datetime resolution vs vague speech handling.
 
 ### E. Phase 5: Real Grounded Contextual Recall & Honest Attribution
+
 - [x] **Comprehensive Recall Context (`src/services/recallContext.ts`):**
   - Synthesizes grounding context from relevant memories (scored by keyword and recency), open tasks, upcoming reminders, and events.
   - Injects current ISO timestamp and device timezone into the prompt.
@@ -85,21 +92,44 @@ Last Updated: 2026-10-29T19:26:00+01:00
 - [x] **Strict Code Quality & Size Constraints:**
   - Every file in `src/` verified under 350 lines of code.
 
-### F. Reminders & Tasks Feature
+### F. Phase 6: Real Local Notifications & Spoken Reminders Delivery
+- [x] **Installed & Configured Native Modules:**
+  - Added `expo-notifications` (~57.0.24) and `expo-speech` (~57.0.3).
+  - Configured `app.json` config plugin `expo-notifications` with Android notification icon and color (`#166e3d`), plus permissions `SCHEDULE_EXACT_ALARM`, `POST_NOTIFICATIONS`, `RECORD_AUDIO`.
+  - **Dev Build Requirement:** Adding `expo-notifications` with native permissions requires a new development build (`eas build --profile development` or `npx expo run:android`) to link native Android notification channels, receiver manifests, and exact alarm permissions on a physical device.
+- [x] **Reminder Delivery Engine (`src/services/reminderScheduler.ts`):**
+  - Removed old `Alert.alert` path.
+  - Creates dedicated Android notification channel `ranti-reminders` (`IMPORTANCE_MAX`, vibration, badge, light).
+  - Contextual notification permissions request.
+  - Schedules notifications at exact `scheduledAt` dates using `DATE` trigger.
+  - Foreground speech delivery via `expo-speech`: reads reminder aloud when received while app is open.
+  - Startup reconciliation: automatically reschedules any pending future reminders lacking a notification identifier.
+- [x] **Proper Reminders Data Layer & UI (`src/app/(tabs)/reminders.tsx` & `src/hooks/useReminders.ts`):**
+  - "Add reminder" now creates real `Reminder` records with `scheduledAt`, `status: 'pending'`, and schedules a real local notification.
+  - Toggling or checking a reminder cancels the active notification.
+  - Voice extraction in `useListeningSession` schedules notifications for extracted reminders.
+- [x] **Honest Delivery Modes in Settings (`src/app/(tabs)/settings.tsx`):**
+  - Honest copy regarding spoken delivery: reads aloud when app is open, delivers high-priority text notification when app is backgrounded/closed.
+
+### G. Historical Reminders & Tasks Feature
+
 - [x] **Native Date / Time Picker:** Replaced free-text date input with `@react-native-community/datetimepicker` (v9.1.0). Tapping "Set date & time" opens the Android `DatePickerDialog`, then auto-transitions to `TimePickerDialog`. Quick-select preset pills ("Today", "Tomorrow", "Next week") set a `Date` at 9 AM on the respective day and highlight when active. Save stores `time` as a human-readable string (e.g. `Tue, Oct 29 · 5:30 PM`) and `dueAt` as an ISO timestamp in Firestore.
 - [x] **Instant Check / Uncheck:** In [`src/hooks/useTasks.ts`](file:///c:/Users/Abraham/Desktop/Projects/ranti/src/hooks/useTasks.ts), checking or unchecking a reminder optimistically toggles the checkbox and line-through immediately with zero latency using React Query `onMutate` cache updates and rollback on error.
 - [x] **Instant Task Creation:** When saving a reminder, `addTask` inserts the item optimistically into the cache before awaiting the Firestore network response.
 
 ### D. Environment & Security
+
 - [x] **Dotenv Configuration:** Sensitive credentials (`EXPO_PUBLIC_FIREBASE_*`, `EXPO_PUBLIC_META_API_*`) configured strictly via `.env` / `.env.example`.
 - [x] **Git Safety:** Updated `.gitignore` to strictly exclude all `.env*` files.
 
 ### E. Official Firebase Integration & Services
+
 - [x] **Official Firebase SDK (`src/services/firebase.ts`):** Initialized via `initializeApp` and `getFirestore` from `firebase/app` and `firebase/firestore`.
 - [x] **Zero Mock Storage (`src/services/storage.ts`):** Directly queries and writes to Cloud Firestore collections (`users/{userId}/memories`, `tasks`, `reminders`, `events`, `chat`) using modular methods (`getDocs`, `addDoc`, `updateDoc`).
 - [x] **Reminder Delivery Engine (`src/services/reminderScheduler.ts`):** Android alert notifications and audio earbud delivery for due reminders.
 
 ### F. Screens & UI
+
 - [x] **Assistant Screen (`src/app/(tabs)/assistant.tsx`):** Displays database chat history, interactive input, and active listening toggle with error state.
 - [x] **Today Dashboard (`src/app/(tabs)/today.tsx`):** Real-time task checklist, Up Next card, and database memories with clean empty states.
 - [x] **Memories Library (`src/app/(tabs)/memories/index.tsx`):** Search and filter pills backed by database query.

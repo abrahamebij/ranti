@@ -7,6 +7,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "../services/queryClient";
 import { userSettingsService } from "../services/userSettings";
+import { reminderScheduler } from "../services/reminderScheduler";
+import { storageService } from "../services/storage";
 import "../global.css";
 import { colors } from "../lib/colors";
 
@@ -21,10 +23,17 @@ export default function RootLayout() {
   useEffect(() => {
     async function prepare() {
       try {
+        await reminderScheduler.init();
         const settings = await userSettingsService.getSettings();
         if (settings.isOnboarded) {
           router.replace("/(tabs)/assistant");
         }
+        // Reconcile pending reminders with scheduled notifications
+        storageService.getReminders().then((reminders) => {
+          reminderScheduler.reconcileReminders(reminders, (id, patch) =>
+            storageService.updateReminder(id, patch)
+          );
+        }).catch((err) => console.warn("Failed to reconcile reminders:", err));
       } catch (e) {
         console.warn("Failed to check onboarded status:", e);
       } finally {

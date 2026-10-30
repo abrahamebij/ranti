@@ -25,6 +25,7 @@ export interface Reminder {
   scheduledAt: string; // ISO string
   status: 'pending' | 'delivered' | 'dismissed';
   deliveryPreference?: 'audio' | 'notification';
+  notificationId?: string;
   sourceMemoryIds?: string[];
   createdAt: string;
 }

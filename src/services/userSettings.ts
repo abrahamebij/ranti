@@ -10,6 +10,8 @@ export interface UserSettings {
   displayName: string;
   voiceSampleUri?: string;
   voiceSampleDurationMs?: number;
+  deliveryPreference?: 'audio' | 'notification';
+  notificationsEnabled?: boolean;
 }
 
 const SETTINGS_FILE_URI = `${FileSystem.documentDirectory}ranti_user_settings.json`;
@@ -17,6 +19,8 @@ const SETTINGS_FILE_URI = `${FileSystem.documentDirectory}ranti_user_settings.js
 const DEFAULT_SETTINGS: UserSettings = {
   isOnboarded: false,
   displayName: 'Friend',
+  deliveryPreference: 'notification',
+  notificationsEnabled: true,
 };
 
 export const userSettingsService = {
