@@ -1,7 +1,7 @@
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import { router } from "expo-router";
 import { useState } from "react";
-import { ScrollView, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FilterPill } from "../../../components/FilterPill";
 import { MemoryListItem } from "../../../components/MemoryListItem";
@@ -15,9 +15,9 @@ const FILTERS: Filter[] = ["All", "People", "Plans", "Notes"];
 export default function MemoriesScreen() {
   const [activeFilter, setActiveFilter] = useState<Filter>("All");
   const [search, setSearch] = useState("");
-  const { memories } = useMemories(activeFilter);
+  const { memories, isLoading, isError } = useMemories(activeFilter);
 
-  const filtered = memories.filter((m) => {
+  const filtered = (memories ?? []).filter((m) => {
     const term = search.trim().toLowerCase();
     if (!term) return true;
     return (
@@ -64,11 +64,27 @@ export default function MemoriesScreen() {
       </View>
 
       {/* Count */}
+      {!isLoading && !isError && (
       <View className="flex-row items-center justify-between px-5 mb-3">
         <Text className="text-sm text-muted">{filtered.length} memories</Text>
         <Text className="text-sm text-muted">Newest first</Text>
       </View>
+      )}
 
+      {isLoading ? (
+        <ActivityIndicator
+          style={{ marginTop: 40 }}
+          color={colors.primary}
+          size="large"
+        />
+      ) : isError ? (
+        <View className="flex-1 items-center justify-center px-6">
+          <Ionicons name="cloud-offline-outline" size={40} color={colors.muted} />
+          <Text className="text-sm text-muted text-center mt-3">
+            Couldn't load memories. Check your connection and try again.
+          </Text>
+        </View>
+      ) : (
       <ScrollView
         className="flex-1 px-5"
         contentContainerStyle={{ paddingBottom: 24 }}
@@ -90,6 +106,7 @@ export default function MemoriesScreen() {
           ))
         )}
       </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
