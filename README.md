@@ -3,8 +3,8 @@
 <h1 align="center">Ranti</h1>
 
 <p align="center">
-  <strong>A little more to remember.</strong><br>
-  Ambient audio memory capture and contextual recall on Android. Powered by Meta Llama.
+  <strong>A little less to remember.</strong><br>
+  Voice-first memory prosthetic built specifically for individuals living with Alzheimer&apos;s disease, dementia, and cognitive impairment. Powered by Meta Llama on Android.
 </p>
 
 <p align="center">
@@ -40,9 +40,9 @@ Recall answers questions with **verified attribution**: every fact cites a stabl
 
 > **The record is the truth.**
 >
-> Human memory drops details under cognitive load: names, promises, item locations, and deadlines.
-> Note-taking apps fail because they require active manual transcription when you are busiest.
-> Ranti listens when permitted, extracts structure with schema guarantees, and answers from real data.
+> For individuals living with Alzheimer&apos;s disease, dementia, or age-related memory impairment, everyday memory gaps create anxiety, confusion, and loss of independence.
+> Traditional note apps fail because they require the very executive function that cognitive decline impairs.
+> Ranti listens when permitted, extracts structured facts without manual typing, and answers only from verified records.
 
 | What has been observed on device | Where the boundary is |
 | :--- | :--- |
@@ -78,19 +78,30 @@ Recall answers questions with **verified attribution**: every fact cites a stabl
 
 ## 01 · The gap
 
-You leave your keys on the hall table. You mention to your spouse that Maya's birthday party is Saturday at two. You promise your coworker you will email the updated pitch deck before noon.
+You leave your glasses on the nightstand. You promise your daughter you will take your medicine at four. Someone mentions a neighbor&apos;s name, and two minutes later it has slipped away entirely.
 
-Ten minutes later, that information is in none of your apps.
+For millions of individuals and families, this is not a casual inconvenience. It is the disorienting, daily reality of progressive cognitive decline and memory impairment.
 
-The friction of manual note-taking is fatal. To log a reminder, a person must unlock their phone, find the right app, type a title, tap through date and time wheels, pick a category, and save. Under real-world cognitive load, people simply do not do it.
+> **The global reality of memory loss**
+>
+> According to the **World Health Organization (WHO)**, more than **55 million people** worldwide are currently living with dementia, with Alzheimer&apos;s disease contributing to 60–70% of cases.
+>
+> **Nearly 10 million new cases are diagnosed every year** — equivalent to one new person developing dementia **every 3.2 seconds**.
+> The total number of people living with dementia is projected to surge to **78 million by 2030** and **139 million by 2050**, driven by an aging global population ([WHO Dementia Fact Sheet, 2023](https://www.who.int/news-room/fact-sheets/detail/dementia)).
 
-**Speech is high-bandwidth, but raw audio is unsearchable.** Having 40 hours of voice memos is no better than having none: nobody can re-listen to hours of tape to find where they put their passport.
+### Why conventional digital tools fail
 
-Ranti bridges that gap:
+Traditional productivity apps and digital notebooks are built for tech-savvy knowledge workers, not for individuals coping with memory loss or cognitive fatigue:
 
-1. **Low-friction capture**: Push-to-talk dictation or ambient listening sessions record natural speech.
-2. **Schema-enforced distillation**: Meta Llama extracts distinct entity types (memories, tasks, reminders, events) with temporal grounding.
-3. **Honest retrieval**: An assistant that answers strictly from those records, linking every claim directly to the underlying memory card.
+- **Complex interaction trees**: Navigating nested screens, date pickers, dropdowns, and tags requires executive function that cognitive decline steadily impairs.
+- **Manual transcription burden**: When remembering to write something down is the very thing that fails, an app that demands manual input is useless.
+- **Cognitive friction and anxiety**: Forgetting familiar names, appointments, or promises causes acute social anxiety and erodes personal independence.
+
+**Ranti** (Yoruba for *"Remember"*) is designed from the ground up as a gentle, ambient prosthetic for human memory:
+
+1. **Zero-friction voice capture**: Speak naturally via push-to-talk dictation or ambient listening sessions without typing or screen navigation.
+2. **Autonomous structured extraction**: Meta Llama listens and categorizes items automatically into memories, tasks, reminders, and calendar events with temporal grounding.
+3. **Reassuring, grounded recall**: When the user or a caregiver asks *"Where are my keys?"* or *"Who is visiting today?"*, Ranti answers calmly and truthfully, attributing every fact directly to a verified record.
 
 ---
 
@@ -98,13 +109,15 @@ Ranti bridges that gap:
 
 ## 02 · The promise
 
-> **Capture naturally. Extract structured facts. Answer only from evidence.**
+> **Capture naturally. Extract structured facts. Protect against confusion.**
 
-When you speak to Ranti, you never organize folders, configure tags, or manually sort items. The pipeline guarantees three invariants:
+For someone living with memory impairment, receiving a fabricated or hallucinated answer from an AI assistant is far worse than receiving no answer: it creates confusion, agitation, and false beliefs.
+
+When you speak to Ranti, you never organize folders, configure tags, or manually sort items. The pipeline guarantees three foundational invariants:
 
 - **Strict schema boundaries.** Freeform prose extraction is banned. Meta Llama returns schema-enforced JSON conforming to strict types. Memories belong strictly to UI-supported categories (`People`, `Plans`, `Notes`, `General`); tasks have booleans; reminders have resolvable deadlines.
-- **Temporal grounding without invention.** Relative phrases like *"submit the form tomorrow morning"* are anchored to the device's actual ISO datetime and timezone. If the speaker did not mention a time, Ranti does not invent one — it saves a task or note rather than hallucinating an alarm.
-- **Attribution or silence.** When asked *"Where did I put my keys?"*, the Assistant checks user memories. If found, it answers and provides a verified source chip. If absent, it states plainly: *"I don't have a record of that."* It never invents answers.
+- **Temporal grounding without invention.** Relative phrases like *"take morning medicine tomorrow"* are anchored to the device&apos;s actual ISO datetime and timezone. If the speaker did not mention a specific time, Ranti does not invent one — it saves a task or note rather than hallucinating an alarm.
+- **Attribution or silence (Anti-confabulation).** When asked *"Where did I put my keys?"*, the Assistant checks real user memories. If found, it answers and provides a verified, tappable source chip. If absent, it states plainly: *"I don&apos;t have a record of that."* It never fabricates answers to appease the user.
 
 ---
 
