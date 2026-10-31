@@ -54,28 +54,28 @@
           "microphonePermission": "Ranti needs microphone access to listen and capture memories.",
           "recordAudioAndroid": true
         }
-      ],
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "ndkVersion": "30.0.16248370"
-          }
-        }
-      ],
-      [
-        "expo-dev-client",
-        {
-          "launchMode": "most-recent",
-          "defaultLaunchURL": "http://localhost:8081",
-          "android": {
-            "defaultLaunchURL": "http://10.0.2.2:8081"
-          },
-          "toolsButton": true,
-          "skipOnboarding": false,
-          "showMenuAtLaunch": true
-        }
       ]
+      // [
+      //   "expo-build-properties",
+      //   {
+      //     "android": {
+      //       "ndkVersion": "30.0.16248370"
+      //     }
+      //   }
+      // ],
+      // [
+      //   "expo-dev-client",
+      //   {
+      //     "launchMode": "most-recent",
+      //     "defaultLaunchURL": "http://localhost:8081",
+      //     "android": {
+      //       "defaultLaunchURL": "http://10.0.2.2:8081"
+      //     },
+      //     "toolsButton": true,
+      //     "skipOnboarding": false,
+      //     "showMenuAtLaunch": true
+      //   }
+      // ]
     ],
     "experiments": {
       "typedRoutes": true,
