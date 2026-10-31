@@ -1,56 +1,470 @@
-# Welcome to your Expo app 👋
+<a id="top"></a>
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+<h1 align="center">Ranti</h1>
 
-## Get started
+<p align="center">
+  <strong>A little less to remember.</strong><br>
+  Ambient audio memory capture and contextual recall on Android. Powered by Meta Llama.
+</p>
 
-1. Install dependencies
+<p align="center">
+  <a href="#x-running-it">Run locally</a>
+  &nbsp; · &nbsp;
+  <a href="#iii-the-shape">Architecture</a>
+  &nbsp; · &nbsp;
+  <a href="#xi-what-is-true-and-what-is-not">What works today</a>
+  &nbsp; · &nbsp;
+  <a href="#viii-the-decisions">Engineering decisions</a>
+</p>
 
-   ```bash
-   npm install
-   ```
+<p align="center">
+  <sub>ANDROID &nbsp; / &nbsp; EXPO SDK 57 &nbsp; / &nbsp; REACT NATIVE 0.86 &nbsp; / &nbsp; META LLAMA &nbsp; / &nbsp; CLOUD FIRESTORE</sub>
+</p>
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
+Memory capture is **one continuous loop**: listen to spoken thoughts, stream chunks to Meta's Cloud API, enforce strict structured schemas, and persist memories, tasks, reminders, and events into Cloud Firestore with temporal grounding.
 
-In the output, you'll find options to open the app in a
+Recall answers questions with **verified attribution**: every fact cites a stable ID from the user's real records, or plainly admits it has no record.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+| Pipeline step | Target | Measured behavior | Boundary |
+| :--- | :---: | :---: | :--- |
+| **Microphone metering** | 120ms polling | Live RMS energy waveform during sound check | Local audio session only |
+| **Dictation recording** | 16kHz mono M4A | Fast tap-to-talk transcription into Assistant input | Active modal dictation |
+| **Speech-to-text** | Meta ASR API | Speech chunk transcribed into timestamped text | HTTPS cloud round-trip |
+| **Structured extraction** | Meta Llama 3.3 | Memories, tasks, reminders & events in JSON schema | Strict schema enforcement |
+| **Firestore write** | Cloud Firestore | Atomic document creation with real generated IDs | Zero fake-ID fallbacks |
+| **Contextual recall** | Meta Llama RAG | Cross-entity retrieval with verified source chips | Strict anti-hallucination refusal |
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+<p align="center"><sub>Recorded October 2026 · physical Android device & Expo Go · Meta Model API.<br>Every control verified — zero placeholder handlers. Full evidence in <a href="#xi-what-is-true-and-what-is-not">What works today</a>.</sub></p>
 
-## Get a fresh project
+> **The record is the truth.**
+>
+> Human memory drops details under cognitive load: names, promises, item locations, and deadlines.
+> Note-taking apps fail because they require active manual transcription when you are busiest.
+> Ranti listens when permitted, extracts structure with schema guarantees, and answers from real data.
 
-When you're ready, run:
+| What has been observed on device | Where the boundary is |
+| :--- | :--- |
+| Real microphone recording, live metering waveform, and audio playback | Voice setup verifies input levels; does not run biometric speaker identification. |
+| Schema-enforced extraction separating memories, tasks, reminders, and calendar events | Audio is processed via Meta Cloud APIs, not on-device. |
+| Temporal resolution resolving "tomorrow at 3pm" to concrete ISO timestamps | Resolves relative times from injected device timezone; never fabricates a missing hour. |
+| Assistant answering from real database items with tappable source chips | Answers are strictly grounded in retrieved records; asks for clarification when missing. |
+| Foreground spoken reminders reading titles aloud via `expo-speech` | Spoken reminders run while app is open; native notifications require a dev build. |
+| Complete data wipe erasing all Firestore user collections and local files | Deletion permanently wipes cloud documents and device storage; irreversible. |
 
-```bash
-npm run reset-project
+<details>
+<summary><strong>Contents — the product, the engineering, the evidence</strong></summary>
+
+| | Chapter | |
+| :--- | :--- | :--- |
+| 01 | [The gap](#i-the-problem) | Why digital notes get abandoned |
+| 02 | [The promise](#ii-the-one-idea) | Ambient capture, structured extraction, verified recall |
+| 03 | [Architecture](#iii-the-shape) | Mobile frontend, Meta inference, Cloud Firestore |
+| 04 | [The life of a memory](#iv-the-life-of-a-memory) | Record, transcribe, ground, extract, save |
+| 05 | [Grounding & recall](#v-grounding-and-recall) | Cross-entity context and tappable source chips |
+| 06 | [Reminders & spoken delivery](#vi-reminders-and-delivery) | In-memory timers and foreground speech |
+| 07 | [Privacy & data sovereignty](#vii-privacy) | Cloud processing disclosure and real deletion |
+| 08 | [Engineering decisions](#viii-the-decisions) | Eight architectural choices and lessons |
+| 09 | [Repository map](#ix-the-map) | Where the moving parts live |
+| 10 | [Run locally](#x-running-it) | Install, configure, test in Expo Go |
+| 11 | [What works today](#xi-what-is-true-and-what-is-not) | Observed, unobserved, absent |
+
+</details>
+
+---
+
+<a id="i-the-problem"></a>
+
+## 01 · The gap
+
+You leave your keys on the hall table. You mention to your spouse that Maya's birthday party is Saturday at two. You promise your coworker you will email the updated pitch deck before noon.
+
+Ten minutes later, that information is in none of your apps.
+
+The friction of manual note-taking is fatal. To log a reminder, a person must unlock their phone, find the right app, type a title, tap through date and time wheels, pick a category, and save. Under real-world cognitive load, people simply do not do it.
+
+**Speech is high-bandwidth, but raw audio is unsearchable.** Having 40 hours of voice memos is no better than having none: nobody can re-listen to hours of tape to find where they put their passport.
+
+Ranti bridges that gap:
+1. **Low-friction capture**: Push-to-talk dictation or ambient listening sessions record natural speech.
+2. **Schema-enforced distillation**: Meta Llama extracts distinct entity types (memories, tasks, reminders, events) with temporal grounding.
+3. **Honest retrieval**: An assistant that answers strictly from those records, linking every claim directly to the underlying memory card.
+
+---
+
+<a id="ii-the-one-idea"></a>
+
+## 02 · The promise
+
+> **Capture naturally. Extract structured facts. Answer only from evidence.**
+
+When you speak to Ranti, you never organize folders, configure tags, or manually sort items. The pipeline guarantees three invariants:
+
+- **Strict schema boundaries.** Freeform prose extraction is banned. Meta Llama returns schema-enforced JSON conforming to strict types. Memories belong strictly to UI-supported categories (`People`, `Plans`, `Notes`, `General`); tasks have booleans; reminders have resolvable deadlines.
+- **Temporal grounding without invention.** Relative phrases like *"submit the form tomorrow morning"* are anchored to the device's actual ISO datetime and timezone. If the speaker did not mention a time, Ranti does not invent one — it saves a task or note rather than hallucinating an alarm.
+- **Attribution or silence.** When asked *"Where did I put my keys?"*, the Assistant checks user memories. If found, it answers and provides a verified source chip. If absent, it states plainly: *"I don't have a record of that."* It never invents answers.
+
+---
+
+<a id="iii-the-shape"></a>
+
+## 03 · Architecture
+
+A mobile-first architecture built for low latency on Android.
+
+| Layer | Technology | Role |
+| :--- | :--- | :--- |
+| **Mobile App** | Expo SDK 57 · React Native 0.86 · Expo Router | Native UI, file routing, audio recording, permissions |
+| **Inference Layer** | Meta Model API (`meta/whisper` & `llama-3.3-70b-instruct`) | Speech-to-text, structured extraction, grounded RAG recall |
+| **State & Cache** | TanStack React Query v5 | Optimistic UI updates, cache invalidation, query synchronization |
+| **Persistence** | Cloud Firestore | Realtime document storage (`memories`, `tasks`, `reminders`, `events`, `chat`) |
+| **Local Storage** | `expo-file-system` | Sound check samples, user settings, onboarded state |
+
+```mermaid
+flowchart TB
+    subgraph client["Android Client · Expo SDK 57"]
+        mic["expo-audio<br/>Live recorder & metering"]
+        ui["Expo Router Screens<br/>Today · Memories · Assistant · Reminders · Settings"]
+        rq["TanStack React Query<br/>Optimistic cache & mutations"]
+        fs["expo-file-system<br/>Settings & audio clips"]
+        speech["expo-speech<br/>Foreground spoken delivery"]
+    end
+
+    subgraph cloud["Cloud Services"]
+        meta_asr["Meta Speech ASR API<br/>Audio chunk to text"]
+        meta_llama["Meta Llama 3.3 API<br/>Structured JSON extraction & Grounded RAG"]
+        firestore["Cloud Firestore<br/>Users, memories, tasks, reminders, chat"]
+    end
+
+    mic --> meta_asr
+    meta_asr --> meta_llama
+    meta_llama --> rq
+    rq --> firestore
+    firestore --> ui
+    ui --> speech
+    ui --> fs
+
+    classDef clientStyle fill:#0B0D12,stroke:#166e3d,color:#ffffff
+    classDef engineStyle fill:#EEF2FF,stroke:#166e3d,color:#0B0D12
+    classDef cloudStyle fill:#F7F8FA,stroke:#D3D6CD,color:#1A1A1A
+    class mic,ui,rq,fs,speech clientStyle
+    class meta_asr,meta_llama engineStyle
+    class firestore cloudStyle
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-### Other setup steps
+<a id="iv-the-life-of-a-memory"></a>
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## 04 · The life of a memory
 
-## Learn more
+From spoken phrase to persisted database record with zero data loss.
 
-To learn more about developing your project with Expo, look at the following resources:
+```mermaid
+sequenceDiagram
+    autonumber
+    participant User as User Speech
+    participant Rec as audioRecorder
+    participant MetaASR as Meta ASR API
+    participant Extractor as metaExtractor (Llama 3.3)
+    participant Storage as Cloud Firestore
+    participant UI as TanStack Cache / UI
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+    User->>Rec: "Pick up dry cleaning tomorrow at 4pm"
+    Rec->>MetaASR: Stream audio chunk (HTTPS)
+    MetaASR-->>Extractor: Transcript text
+    Note over Extractor: Injects current ISO timestamp + device timezone + rolling context
+    Extractor->>Extractor: Enforce JSON schema (Deduplicate & anchor relative time)
+    Extractor->>Storage: addReminder({ title, scheduledAt: "2026-11-01T16:00:00" })
+    Storage-->>UI: Real Firestore Document ID
+    UI-->>User: Reminders tab updates optimistically
+```
 
-## Join the community
+### 1 · Rolling context deduplication
+Extracting audio in chunks risks saving the same memory multiple times if a thought spans a chunk boundary. `metaExtractor` maintains a rolling context window:
+- The previous transcript snippet.
+- The titles of recently extracted memories.
+- A deterministic similarity check on normalized content before writing to Firestore.
 
-Join our community of developers creating universal apps.
+### 2 · Honest error handling
+`storage.ts` contains **zero fake fallback IDs**. When an item fails validation or a network connection drops:
+- Undefined fields are stripped before Firestore rejection.
+- Default fields (`completed: false`, `createdAt: ISOString`) are guaranteed.
+- If a write fails, typed `StorageError` exceptions propagate directly to the UI, presenting an actionable retry prompt.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+---
+
+<a id="v-grounding-and-recall"></a>
+
+## 05 · Grounding & recall
+
+The Assistant does not chat loosely. It answers from your real life.
+
+```text
+User: "Where did I leave my passport?"
+Assistant: "You put your passport in the blue folder inside the desk drawer."
+[Chip: From "Passport location" ↗]
+```
+
+| Component | Implementation | Invariant |
+| :--- | :--- | :--- |
+| **Context Assembly** | Keyword scoring + recency ranking across memories, tasks, reminders, and events | Context window capped; never dumps entire database |
+| **Entity Identification** | Every supplied item receives a stable ID | Identifiers match real Firestore document IDs |
+| **Attribution Validation** | Model returns `{ answer, sourceIds[] }` via structured JSON output | Drops any returned `sourceId` that was not in context |
+| **Deep Navigation** | Tapping a source chip opens `memories/[id]` | Direct link to underlying source memory card |
+| **Honest Refusal** | Instructed prompt: "Answer only from context" | States clearly when no record exists; never hallucinates |
+
+---
+
+<a id="vi-reminders-and-delivery"></a>
+
+## 06 · Reminders & spoken delivery
+
+Reminders are saved with concrete ISO timestamps and real scheduled dates.
+
+- **Foreground spoken mode**: When a reminder is due while Ranti is open, `expo-speech` reads the title aloud (`"Reminder: Pick up dry cleaning"`).
+- **Date & time picker**: Creating a reminder provides a real date and time modal picker, saving a true `Reminder` entity rather than a generic task.
+- **Expo Go compatibility**: Native background push notifications require a custom dev build on Android. To ensure seamless operation in standard Expo Go, `reminderScheduler.ts` manages in-memory foreground timers and clean stubs without crashing native module loaders.
+
+---
+
+<a id="vii-privacy"></a>
+
+## 07 · Privacy & data sovereignty
+
+Ranti's value rests entirely on trust. We state our technical boundaries plainly:
+
+### What is true and what is disclosed
+- **Cloud processing disclosure**: Audio is transmitted securely over HTTPS to Meta's Cloud API endpoints for speech recognition and extraction. **Ranti does not claim on-device processing.**
+- **First-use transparency**: A dedicated Privacy & Data notice is presented on first launch before onboarding, detailing what is recorded, where audio is processed, what is stored in Firestore, and how to delete it.
+- **Real "Delete all my data"**: In Settings, a dedicated destructive action permanently erases:
+  1. All user documents across `memories`, `tasks`, `reminders`, `events`, and `chat` collections in Cloud Firestore.
+  2. All local voice samples and settings files from `expo-file-system`.
+  3. Clears in-memory TanStack query caches and routes back to a clean onboarding screen.
+
+---
+
+<a id="viii-the-decisions"></a>
+
+## 08 · Engineering decisions
+
+Key architectural decisions made across the codebase:
+
+<details>
+<summary><strong>1. Schema-enforced structured output over prose extraction</strong></summary>
+
+Asking an LLM for "JSON in markdown fences" frequently returns malformed keys, markdown wrapping, or unexpected structures. Ranti uses Meta's structured output API with strict JSON schema definitions, backed by TypeScript validation. Invalid items are repaired or dropped rather than crashing the runtime.
+
+</details>
+
+<details>
+<summary><strong>2. Injected temporal grounding with device timezone</strong></summary>
+
+An LLM has no concept of when "now" is. Without grounding, *"Doctor's appointment tomorrow at 10"* cannot resolve to a calendar date. Ranti injects the current ISO datetime (`new Date().toISOString()`) and device timezone directly into the system prompt. If the user says *"sometime next week"*, the model returns `null` for time rather than inventing an hour.
+
+</details>
+
+<details>
+<summary><strong>3. Decoupling demo identity into persisted user preferences</strong></summary>
+
+Hardcoded demo strings ("Morning, Alex", "What does Maya like?") create fragile demos. Ranti persists a user-defined display name during onboarding (`userSettingsService`) and generates assistant suggestions dynamically from real recorded memories. If no memories exist, neutral contextual prompts are shown.
+
+</details>
+
+<details>
+<summary><strong>4. Shared audio recorder state subscription</strong></summary>
+
+To prevent conflicting microphone states between the Settings toggle, the Assistant dictation button, and background listening, `audioRecorder.ts` implements an `onStateChange` listener pattern. Toggling listening anywhere updates all visible controls simultaneously.
+
+</details>
+
+<details>
+<summary><strong>5. Zero fake-ID fallbacks in storage error handling</strong></summary>
+
+Catching a Firestore write error and returning a temporary fake ID (`temp-${Date.now()}`) creates phantom data that disappears on reload. `storage.ts` strips `undefined` fields to satisfy Firestore requirements, sets explicit defaults, and allows real errors to propagate so the UI can display an honest retry state.
+
+</details>
+
+<details>
+<summary><strong>6. Memory management: in-place edit and delete with confirmation</strong></summary>
+
+The ellipsis menu on memory detail screens is fully wired to Firestore mutations:
+- **Edit**: Updates memory title and content in-place with real-time optimistic cache updates.
+- **Delete**: Displays native alert confirmation, deletes the Firestore document, cancels in-flight queries, and navigates back smoothly.
+
+</details>
+
+<details>
+<summary><strong>7. Removing native notification modules for Expo Go stability</strong></summary>
+
+`expo-notifications` requires a compiled development build on Android to initialize `ExpoTopicSubscriptionModule`. To allow reviewers and hackathon judges to run the project instantly in standard Expo Go, native push notification channels were replaced with in-memory foreground timers and `expo-speech` spoken delivery.
+
+</details>
+
+<details>
+<summary><strong>8. Strict 350-line file limit enforcement</strong></summary>
+
+To prevent monolithic files and maintain modular readability, every file in `src/` is strictly capped under 350 lines of code. Shared logic (e.g., `PrivacyNoticeModal`, `SettingsRow`) is factored into dedicated components.
+
+</details>
+
+---
+
+<a id="ix-the-map"></a>
+
+## 09 · Repository map
+
+4,487 lines of TypeScript across `src/`.
+
+| Directory | Lines | Responsibility |
+| :--- | ---: | :--- |
+| [`src/app/`](src/app/) | 2,241 | Expo Router screen layouts, onboarding, tabs, memory detail, settings |
+| [`src/services/`](src/services/) | 1,305 | Meta inference APIs, Firestore storage, audio recording, local settings |
+| [`src/hooks/`](src/hooks/) | 467 | React Query hooks (`useMemories`, `useTasks`, `useReminders`, `useListeningSession`, `useDictation`) |
+| [`src/components/`](src/components/) | 349 | Reusable UI primitives (`Button`, `Card`, `SettingsRow`, `Switch`, `PrivacyNoticeModal`) |
+| [`src/types/`](src/types/) | 75 | Shared domain interfaces and schemas |
+| [`src/lib/`](src/lib/) | 19 | Central color map matching Tailwind theme tokens |
+
+<details>
+<summary><strong>Open the full source map</strong></summary>
+
+```text
+src/
+  app/
+    _layout.tsx                     Root navigator, font loading, onboarding routing
+    index.tsx                       Welcome screen & first-use privacy disclosure
+    voice-setup.tsx                 Sound check, live metering waveform & profile name
+    api-check.tsx                   Dev API connection verification screen
+    (tabs)/
+      _layout.tsx                   Tab navigation bar (Today, Memories, Assistant, Reminders, Settings)
+      today.tsx                     Up Next briefing, daily tasks & reminders
+      memories/
+        index.tsx                   Filterable memory cards with search & loading/error states
+        [id].tsx                    Memory detail with edit modal, delete alert & assistant handoff
+      assistant.tsx                 Contextual RAG chat with verified source chips & dictation mic
+      reminders.tsx                 Upcoming reminders, spoken toggle & date/time picker
+      settings.tsx                  Listening toggle, audio delivery, privacy modal, "Delete all data"
+
+  services/
+    audioRecorder.ts                expo-audio recorder with onStateChange broadcast
+    firebase.ts                     Cloud Firestore initialization
+    firebaseConfig.ts               Environment credentials & default user namespace
+    metaExtractor.ts                Llama 3.3 schema-enforced structured extraction
+    metaRealtimeClient.ts           Streaming speech recognition client
+    metaRecall.ts                   Contextual RAG retrieval with verified source attribution
+    queryClient.ts                  TanStack React Query singleton
+    reminderScheduler.ts            In-memory reminder timers & expo-speech foreground audio
+    storage.ts                      Strict Firestore CRUD & deleteAllUserData wipe
+    userSettings.ts                 Local preferences & clearAllLocalData file wipe
+
+  hooks/
+    useListeningSession.ts          Speech extraction loop with rolling deduplication
+    useDictation.ts                 Assistant mic button recording & transcription
+    useMemories.ts                  Memories query, add, edit, and optimistic delete
+    useTasks.ts                     Task list query and toggle mutation
+    useReminders.ts                 Reminders query, add, and status toggle
+
+  components/
+    Button.tsx                      Primary, outline & ghost buttons with loading spinners
+    Card.tsx                        Standard card container
+    FilterPill.tsx                  Category filter pill
+    MemoryListItem.tsx              Memory card with category badge and timestamp
+    PrivacyNoticeModal.tsx          Full privacy policy & data transparency modal
+    SettingsRow.tsx                 Settings item with icon, switch/chevron, and destructive styling
+    Switch.tsx                      Accessible toggle switch
+```
+
+</details>
+
+---
+
+<a id="x-running-it"></a>
+
+## 10 · Run locally
+
+Node 20+, pnpm (or bun/npm), and the **Expo Go** app on an Android device or emulator.
+
+### 1 · Clone & install dependencies
+
+```bash
+git clone https://github.com/abrahamebij/ranti.git
+cd ranti
+pnpm install
+```
+
+### 2 · Configure environment
+
+Create a `.env` file in the root directory:
+
+```dotenv
+# Meta Model API
+EXPO_PUBLIC_META_API_KEY=your_meta_api_key_here
+
+# Firebase / Cloud Firestore
+EXPO_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.firebasestorage.app
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
+```
+
+### 3 · Start Expo dev server
+
+```bash
+npx expo start
+```
+
+Scan the QR code with the **Expo Go** app on your Android device, or press `a` to launch in an Android emulator.
+
+---
+
+<a id="xi-what-is-true-and-what-is-not"></a>
+
+## 11 · What works today
+
+This is the repository's recorded verification status. Everything below has been verified on a physical Android device running Expo SDK 57.
+
+<details open>
+<summary><strong>Observed on device</strong></summary>
+
+| Capability | Observed behavior |
+| :--- | :--- |
+| **Microphone Sound Check** | Live sound test in `voice-setup.tsx` requests microphone permissions, renders live audio metering bars, records a real local M4A sample, and enables playback. |
+| **Assistant Dictation** | Tapping the mic button in Assistant records audio, transcribes it via Meta's API, and automatically populates the chat input with recording/transcribing indicators. |
+| **Schema Extraction** | Spoken phrases are parsed by Meta Llama into structured JSON matching strict schemas (`memories`, `tasks`, `reminders`, `events`). |
+| **Temporal Grounding** | Relative deadlines (e.g. "tomorrow at 3pm") resolve accurately based on the device's actual ISO datetime and local timezone. |
+| **Contextual Assistant Recall** | Asking *"Where did I put my keys?"* answers from real stored memories and displays a tappable source chip opening the memory detail screen. |
+| **Honest Refusal** | Asking questions with no backing data returns a straightforward refusal (*"I don't have a record of that"*) rather than a hallucination. |
+| **Memory Edit & Delete** | Detail screen ellipsis menu supports editing title/content and deleting memories with confirmation alerts and instant cache rollback on error. |
+| **Complete Data Erasure** | Tapping "Delete all my data" in Settings wipes all Firestore documents across user collections, erases local files from `expo-file-system`, clears query cache, and resets onboarding state. |
+
+</details>
+
+<details>
+<summary><strong>Built, not observed end to end</strong></summary>
+
+- **Continuous 24/7 background audio**: While the audio session architecture supports continuous listening, mobile OS battery optimization (Android Doze mode) may throttle background audio capture when the app is suspended for prolonged periods without a foreground service notification.
+- **Multi-speaker diarization**: When multiple people speak simultaneously, the model extracts the combined transcript facts without attributing distinct speaker identities.
+
+</details>
+
+<details>
+<summary><strong>Deliberately absent</strong></summary>
+
+- **No fake mock data**: Zero hardcoded demo personas ("Alex", "Maya") remain in user-facing flows. All views render real data, loading skeletons, or empty states.
+- **No silent error swallowing**: Firestore writes throw typed `StorageError` exceptions; no temporary fake IDs are generated on failure.
+- **No on-device AI claims**: All speech-to-text and reasoning APIs run over secure HTTPS via Meta Cloud APIs, as stated in the in-app privacy policy.
+- **No native build dependency**: Native push notifications (`expo-notifications`) were replaced with in-memory foreground timers and `expo-speech` to guarantee standard Expo Go compatibility.
+
+</details>
+
+---
+
+<p align="center">
+  <br>
+  <strong>Ranti</strong><br>
+  <sub>A little less to remember.</sub><br><br>
+  <a href="#top">Back to top ↑</a>
+</p>
