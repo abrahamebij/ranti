@@ -24,11 +24,20 @@ export interface RealtimeTranscriptEvent {
   speaker?: string;
 }
 
+export interface RealtimeTurnCompleteEvent {
+  type: 'speechComplete';
+  turnId: number | string;
+  transcript: string;
+}
+
 export interface RealtimeSessionOptions {
   sessionId?: string;
   mode?: 'PUSH_TO_TALK' | 'ENDPOINTING' | 'DIARIZATION';
   audioEncoding?: 'PCM_16KHZ' | 'PCM_24KHZ';
+  keywords?: string[];
   onTranscript?: (event: RealtimeTranscriptEvent) => void;
+  /** Whole-turn transcript, sent asynchronously once the server finishes a turn. */
+  onTurnComplete?: (event: RealtimeTurnCompleteEvent) => void;
   onError?: (error: Error) => void;
   onClose?: (code: number, reason: string) => void;
 }
@@ -39,7 +48,9 @@ export class MetaRealtimeAsrSession {
   private mode: string;
   private audioEncoding: string;
   private isHandshakeComplete = false;
+  private keywords: string[];
   private onTranscript?: (event: RealtimeTranscriptEvent) => void;
+  private onTurnComplete?: (event: RealtimeTurnCompleteEvent) => void;
   private onError?: (error: Error) => void;
   private onClose?: (code: number, reason: string) => void;
 
@@ -47,7 +58,9 @@ export class MetaRealtimeAsrSession {
     this.sessionId = options.sessionId ?? `stream-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     this.mode = options.mode ?? 'PUSH_TO_TALK';
     this.audioEncoding = options.audioEncoding ?? 'PCM_16KHZ';
+    this.keywords = options.keywords ?? [];
     this.onTranscript = options.onTranscript;
+    this.onTurnComplete = options.onTurnComplete;
     this.onError = options.onError;
     this.onClose = options.onClose;
   }
@@ -68,12 +81,19 @@ export class MetaRealtimeAsrSession {
 
         this.ws.onopen = () => {
           // 1. Send Handshake as the first JSON text frame immediately
-          const handshake = {
-            authorization: { accessToken: `Bearer ${API_KEY}` },
+          // Matches Meta's cookbook: the raw key goes in accessToken (no "Bearer "
+          // prefix), and partials are cumulative so each one replaces the last.
+          const handshake: Record<string, unknown> = {
+            authorization: { accessToken: API_KEY },
             audioEncoding: this.audioEncoding,
             model: 'muse-voice-transcribe-1.0',
             mode: this.mode,
+            partialMode: 'CUMULATIVE',
+            emitAudioProgress: false,
           };
+          if (this.keywords.length > 0) {
+            handshake.keywords = this.keywords;
+          }
           this.ws?.send(JSON.stringify(handshake));
         };
 
@@ -101,6 +121,11 @@ export class MetaRealtimeAsrSession {
 
             if (data.type === 'transcript') {
               this.onTranscript?.(data as RealtimeTranscriptEvent);
+              return;
+            }
+
+            if (data.type === 'speechComplete') {
+              this.onTurnComplete?.(data as RealtimeTurnCompleteEvent);
             }
           } catch (e) {
             console.warn('[MetaRealtimeAsrSession] Failed to parse message:', event.data, e);
@@ -127,6 +152,15 @@ export class MetaRealtimeAsrSession {
         reject(err instanceof Error ? err : new Error(String(err)));
       }
     });
+  }
+
+  /** True once the handshake was acknowledged and the socket is still open. */
+  isOpen(): boolean {
+    return (
+      this.isHandshakeComplete &&
+      !!this.ws &&
+      this.ws.readyState === WebSocket.OPEN
+    );
   }
 
   /**

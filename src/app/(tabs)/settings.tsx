@@ -23,7 +23,19 @@ import { storageService } from "../../services/storage";
 import { UserSettings, userSettingsService } from "../../services/userSettings";
 
 export default function SettingsScreen() {
-  const { isListening, startListening, stopListening } = useListeningSession();
+  const { isListening, status, lastError, note, startListening, stopListening } =
+    useListeningSession();
+
+  const listeningSubtitle = (() => {
+    if (status === "error") return lastError ?? "Something went wrong. Tap to try again.";
+    if (status === "starting") return "Starting the microphone...";
+    if (status === "reconnecting") return "Connection lost. Reconnecting...";
+    if (status === "listening")
+      return note ?? "On · Keep Ranti open with the screen on";
+    return lastError
+      ? `Off · ${lastError}`
+      : "Off · Save moments as you go";
+  })();
   const [notifications, setNotifications] = useState(true);
   const [deliveryPreference, setDeliveryPreference] = useState<
     "audio" | "notification"
@@ -174,7 +186,7 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="ear-outline"
             title="Background listening"
-            subtitle={`${isListening ? "On" : "Off"} · Save moments as you go`}
+            subtitle={listeningSubtitle}
             trailing={
               <Switch
                 value={isListening}

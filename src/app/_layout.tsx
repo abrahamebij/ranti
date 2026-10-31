@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "../services/queryClient";
+import { ListeningProvider } from "../providers/ListeningProvider";
 import { userSettingsService } from "../services/userSettings";
 import { reminderScheduler } from "../services/reminderScheduler";
 import { storageService } from "../services/storage";
@@ -59,13 +60,15 @@ export default function RootLayout() {
         style={{ flex: 1, backgroundColor: colors.background, paddingTop: 8 }}
       >
         <StatusBar style="dark" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.background },
-            animation: "fade_from_bottom",
-          }}
-        />
+        <ListeningProvider>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.background },
+              animation: "fade_from_bottom",
+            }}
+          />
+        </ListeningProvider>
       </SafeAreaProvider>
     </QueryClientProvider>
   );
