@@ -2,6 +2,8 @@ import { Ionicons } from "@react-native-vector-icons/ionicons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Modal,
   ScrollView,
   Text,
@@ -11,9 +13,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Card } from "../../components/Card";
+import { PrivacyNoticeModal } from "../../components/PrivacyNoticeModal";
 import { SettingsRow } from "../../components/SettingsRow";
 import { Switch } from "../../components/Switch";
 import { useListeningSession } from "../../hooks/useListeningSession";
+import { queryClient } from "../../services/queryClient";
+import { storageService } from "../../services/storage";
 import { userSettingsService, UserSettings } from "../../services/userSettings";
 import { colors } from "../../lib/colors";
 
@@ -29,6 +34,8 @@ export default function SettingsScreen() {
   });
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState("");
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     userSettingsService.getSettings().then((s) => {
@@ -66,6 +73,43 @@ export default function SettingsScreen() {
     setNotifications(val);
     const updated = await userSettingsService.saveSettings({ notificationsEnabled: val });
     setSettings(updated);
+  };
+
+  const handleDeleteAllData = () => {
+    Alert.alert(
+      "Delete all your data?",
+      "This will permanently erase all your memories, tasks, reminders, events, and chat messages from Cloud Firestore, and delete your local voice samples and settings. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete everything",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setIsDeleting(true);
+              if (isListening) {
+                await stopListening();
+              }
+              await storageService.deleteAllUserData();
+              await userSettingsService.clearAllLocalData();
+              queryClient.clear();
+              setIsDeleting(false);
+              Alert.alert(
+                "Data deleted",
+                "All your cloud and local data has been permanently removed.",
+                [{ text: "OK", onPress: () => router.replace("/") }]
+              );
+            } catch (e) {
+              setIsDeleting(false);
+              Alert.alert(
+                "Delete failed",
+                e instanceof Error ? e.message : "Failed to delete all data. Please try again."
+              );
+            }
+          },
+        },
+      ]
+    );
   };
 
   const initials = settings.displayName
@@ -132,7 +176,7 @@ export default function SettingsScreen() {
             title="Spoken audio delivery"
             subtitle={
               deliveryPreference === "audio"
-                ? "Reads reminders aloud when app is open (shows text notification when closed)"
+                ? "Reads reminders aloud when app is open"
                 : "Text notifications only"
             }
             trailing={
@@ -152,7 +196,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Reminders */}
-        <View className="px-5 mb-8">
+        <View className="px-5 mb-6">
           <Text className="text-sm font-semibold text-foreground mb-2">
             Reminders
           </Text>
@@ -163,6 +207,27 @@ export default function SettingsScreen() {
             trailing={
               <Switch value={notifications} onValueChange={toggleNotifications} />
             }
+            showDivider={false}
+          />
+        </View>
+
+        {/* Privacy & Data */}
+        <View className="px-5 mb-8">
+          <Text className="text-sm font-semibold text-foreground mb-2">
+            Privacy &amp; Data
+          </Text>
+          <SettingsRow
+            icon="shield-checkmark-outline"
+            title="Privacy & Data Notice"
+            subtitle="How audio, Meta API & Firestore are handled"
+            onPress={() => setShowPrivacyModal(true)}
+          />
+          <SettingsRow
+            icon="trash-outline"
+            title="Delete all my data"
+            subtitle="Permanently erase Firestore data and local files"
+            onPress={handleDeleteAllData}
+            destructive
             showDivider={false}
           />
         </View>
@@ -225,6 +290,25 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Deleting in progress modal */}
+      <Modal visible={isDeleting} transparent animationType="fade">
+        <View className="flex-1 bg-black/60 items-center justify-center px-6">
+          <View className="bg-surface rounded-2xl p-6 items-center border border-border gap-3">
+            <ActivityIndicator size="large" color="#b91c1c" />
+            <Text className="text-sm font-bold text-foreground">Deleting all data...</Text>
+            <Text className="text-xs text-muted text-center">
+              Permanently erasing Firestore documents and local files.
+            </Text>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Privacy Notice Modal */}
+      <PrivacyNoticeModal
+        visible={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+      />
     </SafeAreaView>
   );
 }

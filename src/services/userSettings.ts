@@ -49,4 +49,18 @@ export const userSettingsService = {
       throw e;
     }
   },
+
+  async clearAllLocalData(): Promise<void> {
+    try {
+      if (FileSystem.documentDirectory) {
+        const files = await FileSystem.readDirectoryAsync(FileSystem.documentDirectory);
+        for (const file of files) {
+          await FileSystem.deleteAsync(`${FileSystem.documentDirectory}${file}`, { idempotent: true });
+        }
+      }
+    } catch (e) {
+      console.warn('[userSettingsService] Error clearing local directory:', e);
+      await FileSystem.deleteAsync(SETTINGS_FILE_URI, { idempotent: true }).catch(() => {});
+    }
+  },
 };

@@ -127,8 +127,11 @@ export default function VoiceSetupScreen() {
         <Text className="text-3xl font-bold text-foreground leading-tight mb-2">
           Make Ranti yours.
         </Text>
-        <Text className="text-xs text-foreground-secondary mb-6">
+        <Text className="text-xs text-foreground-secondary mb-1">
           Set your preferred name and run a microphone sound check.
+        </Text>
+        <Text className="text-[11px] text-muted mb-6">
+          Audio is sent to Meta&apos;s Cloud API for transcription. You can delete all your data anytime in Settings.
         </Text>
 
         {/* Name input */}

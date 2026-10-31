@@ -12,6 +12,7 @@ interface SettingsRowProps {
   trailing?: React.ReactNode;
   onPress?: () => void;
   showDivider?: boolean;
+  destructive?: boolean;
 }
 
 export function SettingsRow({
@@ -21,7 +22,11 @@ export function SettingsRow({
   trailing,
   onPress,
   showDivider = true,
+  destructive = false,
 }: SettingsRowProps) {
+  const textColor = destructive ? '#b91c1c' : colors.foreground;
+  const iconColor = destructive ? '#b91c1c' : colors.foregroundSecondary;
+
   return (
     <>
       <TouchableOpacity
@@ -29,16 +34,16 @@ export function SettingsRow({
         activeOpacity={onPress ? 0.7 : 1}
         className="flex-row items-center py-4 gap-3"
       >
-        <Ionicons name={icon} size={22} color={colors.foregroundSecondary} />
+        <Ionicons name={icon} size={22} color={iconColor} />
         <View className="flex-1">
-          <Text className="text-sm font-medium text-foreground">{title}</Text>
+          <Text className="text-sm font-medium" style={{ color: textColor }}>{title}</Text>
           {subtitle ? (
             <Text className="text-xs text-muted mt-0.5">{subtitle}</Text>
           ) : null}
         </View>
         {trailing ?? (
           onPress ? (
-            <Ionicons name="chevron-down" size={18} color={colors.muted} />
+            <Ionicons name="chevron-forward" size={18} color={colors.muted} />
           ) : null
         )}
       </TouchableOpacity>

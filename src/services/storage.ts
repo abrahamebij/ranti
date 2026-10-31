@@ -313,4 +313,24 @@ export const storageService = {
       throw new StorageError(`Failed to save chat message: ${e instanceof Error ? e.message : String(e)}`, 'chat', e);
     }
   },
+
+  async deleteAllUserData(): Promise<void> {
+    if (!db) throw new StorageError('Firestore database not initialized', 'all');
+    const collections = ['memories', 'tasks', 'reminders', 'events', 'chat'] as const;
+    for (const col of collections) {
+      try {
+        const colRef = collection(db, 'users', defaultUserId, col);
+        const snapshot = await getDocs(colRef);
+        await Promise.all(snapshot.docs.map((d) => deleteDoc(d.ref)));
+      } catch (e) {
+        throw new StorageError(`Failed to delete ${col}: ${e instanceof Error ? e.message : String(e)}`, col, e);
+      }
+    }
+    try {
+      const userDocRef = doc(db, 'users', defaultUserId);
+      await deleteDoc(userDocRef);
+    } catch {
+      // Best effort for root user doc if created
+    }
+  },
 };
