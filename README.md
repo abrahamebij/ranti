@@ -4,7 +4,7 @@
 
 <p align="center">
   <strong>A little more to remember.</strong><br>
-  Voice-first memory prosthetic built specifically for individuals living with Alzheimer&apos;s disease, dementia, and cognitive impairment. Powered by Meta Llama on Android.
+  Voice-first memory prosthetic built specifically for individuals living with Alzheimer&apos;s disease, dementia, and cognitive impairment. Powered by Meta Model API on Android.
 </p>
 
 <p align="center">
@@ -62,7 +62,7 @@ Recall answers questions with **verified attribution**: every fact cites a stabl
 | :--- | :--- | :--- |
 | 01 | [The gap](#i-the-problem) | Alzheimer's, memory decline & why digital notes fail |
 | 02 | [The promise](#ii-the-one-idea) | Ambient capture, structured extraction, anti-confabulation |
-| 03 | [Meta models used](#iii-meta-models) | Llama 3.3 70B, Llama 3.1 8B, and Meta Speech ASR |
+| 03 | [Meta models used](#iii-meta-models) | muse-spark-1.3, muse-voice-transcribe-1.0, muse-wonder-1.0 |
 | 04 | [Architecture](#iv-the-shape) | Mobile frontend, Meta inference, Cloud Firestore |
 | 05 | [The life of a memory](#v-the-life-of-a-memory) | Record, transcribe, ground, extract, save |
 | 06 | [Grounding & recall](#vi-grounding-and-recall) | Cross-entity context and tappable source chips |
@@ -104,7 +104,7 @@ Traditional productivity apps and digital notebooks are built for tech-savvy kno
 **Ranti** (Yoruba for *"Remember"*) is designed from the ground up as a gentle, ambient prosthetic for human memory:
 
 1. **Zero-friction voice capture**: Speak naturally via push-to-talk dictation or ambient listening sessions without typing or screen navigation.
-2. **Autonomous structured extraction**: Meta Llama listens and categorizes items automatically into memories, tasks, reminders, and calendar events with temporal grounding.
+2. **Autonomous structured extraction**: `muse-spark-1.3` listens and categorizes items automatically into memories, tasks, reminders, and calendar events with temporal grounding.
 3. **Reassuring, grounded recall**: When the user or a caregiver asks *"Where are my keys?"* or *"Who is visiting today?"*, Ranti answers calmly and truthfully, attributing every fact directly to a verified record.
 
 ---
@@ -119,7 +119,7 @@ For someone living with memory impairment, receiving a fabricated or hallucinate
 
 When you speak to Ranti, you never organize folders, configure tags, or manually sort items. The pipeline guarantees three foundational invariants:
 
-- **Strict schema boundaries.** Freeform prose extraction is banned. Meta Llama returns schema-enforced JSON conforming to strict types. Memories belong strictly to UI-supported categories (`People`, `Plans`, `Notes`, `General`); tasks have booleans; reminders have resolvable deadlines.
+- **Strict schema boundaries.** Freeform prose extraction is banned. `muse-spark-1.3` returns schema-enforced JSON conforming to strict types. Memories belong strictly to UI-supported categories (`People`, `Plans`, `Notes`, `General`); tasks have booleans; reminders have resolvable deadlines.
 - **Temporal grounding without invention.** Relative phrases like *"take morning medicine tomorrow"* are anchored to the device&apos;s actual ISO datetime and timezone. If the speaker did not mention a specific time, Ranti does not invent one — it saves a task or note rather than hallucinating an alarm.
 - **Attribution or silence (Anti-confabulation).** When asked *"Where did I put my keys?"*, the Assistant checks real user memories. If found, it answers and provides a verified, tappable source chip. If absent, it states plainly: *"I don&apos;t have a record of that."* It never fabricates answers to appease the user.
 
@@ -173,13 +173,13 @@ flowchart TB
 
     subgraph cloud["Cloud Services · Meta Model API"]
         meta_asr["muse-voice-transcribe-1.0<br/>Speech-to-text transcription"]
-        meta_llama["muse-spark-1.3<br/>Structured JSON extraction & Grounded RAG"]
+        muse_spark["muse-spark-1.3<br/>Structured JSON extraction & Grounded RAG"]
         firestore["Cloud Firestore<br/>Users, memories, tasks, reminders, chat"]
     end
 
     mic --> meta_asr
-    meta_asr --> meta_llama
-    meta_llama --> rq
+    meta_asr --> muse_spark
+    muse_spark --> rq
     rq --> firestore
     firestore --> ui
     ui --> speech
@@ -189,7 +189,7 @@ flowchart TB
     classDef engineStyle fill:#EEF2FF,stroke:#166e3d,color:#0B0D12
     classDef cloudStyle fill:#F7F8FA,stroke:#D3D6CD,color:#1A1A1A
     class mic,ui,rq,fs,speech clientStyle
-    class meta_asr,meta_llama engineStyle
+    class meta_asr,muse_spark engineStyle
     class firestore cloudStyle
 ```
 
@@ -507,7 +507,7 @@ This is the repository's recorded verification status. Everything below has been
 | :--- | :--- |
 | **Microphone Sound Check** | Live sound test in `voice-setup.tsx` requests microphone permissions, renders live audio metering bars, records a real local M4A sample, and enables playback. |
 | **Assistant Dictation** | Tapping the mic button in Assistant records audio, transcribes it via Meta's API, and automatically populates the chat input with recording/transcribing indicators. |
-| **Schema Extraction** | Spoken phrases are parsed by Meta Llama into structured JSON matching strict schemas (`memories`, `tasks`, `reminders`, `events`). |
+| **Schema Extraction** | Spoken phrases are parsed by `muse-spark-1.3` into structured JSON matching strict schemas (`memories`, `tasks`, `reminders`, `events`). |
 | **Temporal Grounding** | Relative deadlines (e.g. "tomorrow at 3pm") resolve accurately based on the device's actual ISO datetime and local timezone. |
 | **Contextual Assistant Recall** | Asking *"Where did I put my keys?"* answers from real stored memories and displays a tappable source chip opening the memory detail screen. |
 | **Honest Refusal** | Asking questions with no backing data returns a straightforward refusal (*"I don't have a record of that"*) rather than a hallucination. |
