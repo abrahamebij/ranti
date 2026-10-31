@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <sub>ANDROID &nbsp; / &nbsp; EXPO SDK 57 &nbsp; / &nbsp; REACT NATIVE 0.86 &nbsp; / &nbsp; META LLAMA &nbsp; / &nbsp; CLOUD FIRESTORE</sub>
+  <sub>ANDROID &nbsp; / &nbsp; EXPO SDK 57 &nbsp; / &nbsp; REACT NATIVE 0.86 &nbsp; / &nbsp; META MODEL API &nbsp; / &nbsp; CLOUD FIRESTORE</sub>
 </p>
 
 ---
@@ -33,12 +33,12 @@ Recall answers questions with **verified attribution**: every fact cites a stabl
 | :--- | :---: | :---: | :--- |
 | **Microphone metering** | 120ms polling | Live RMS energy waveform during sound check | Local audio session only |
 | **Dictation recording** | 16kHz mono M4A | Fast tap-to-talk transcription into Assistant input | Active modal dictation |
-| **Speech-to-text** | Meta ASR API | Speech chunk transcribed into timestamped text | HTTPS cloud round-trip |
-| **Structured extraction** | Meta Llama 3.3 | Memories, tasks, reminders & events in JSON schema | Strict schema enforcement |
+| **Speech-to-text** | `muse-voice-transcribe-1.0` | Real-time speech transcribed into timestamped text | WSS / HTTPS streaming |
+| **Structured extraction** | `muse-spark-1.3` | Memories, tasks, reminders & events in JSON schema | Strict schema enforcement |
 | **Firestore write** | Cloud Firestore | Atomic document creation with real generated IDs | Zero fake-ID fallbacks |
-| **Contextual recall** | Meta Llama RAG | Cross-entity retrieval with verified source chips | Strict anti-hallucination refusal |
+| **Contextual recall** | `muse-spark-1.3` (RAG) | Cross-entity retrieval with verified source chips | Strict anti-hallucination refusal |
 
-<p align="center"><sub>Recorded October 2026 · physical Android device & Expo Go · Meta Model API.<br>Every control verified — zero placeholder handlers. Full evidence in <a href="#xi-what-is-true-and-what-is-not">What works today</a>.</sub></p>
+<p align="center"><sub>Recorded October 2026 · physical Android device & Expo Go · Meta Model API.<br>Every control verified — zero placeholder handlers. Full evidence in <a href="#xiii-what-is-true-and-what-is-not">What works today</a>.</sub></p>
 
 > **The record is the truth.**
 >
@@ -129,19 +129,21 @@ When you speak to Ranti, you never organize folders, configure tags, or manually
 
 ## 03 · Meta models used
 
-Ranti utilizes Meta&apos;s open-weights and model API ecosystem to power the entire voice-to-memory intelligence loop:
+Ranti utilizes Meta&apos;s official **Meta Model API** suite (as provisioned in the Meta Global AI Developer Hackathon) to power the entire voice-to-memory loop:
 
 | Model | Implementation | Modality | Role in Ranti |
 | :--- | :--- | :--- | :--- |
-| **`llama-3.3-70b-instruct`** | [`metaExtractor.ts`](src/services/metaExtractor.ts)<br>[`metaRecall.ts`](src/services/metaRecall.ts) | Text / Structured JSON | **Primary Extraction & Grounded Recall:** Enforces strict JSON schemas for memories, tasks, reminders, and events. Grounded RAG recall with verified source attribution. |
-| **`llama-3.1-8b-instant`** | [`metaRecall.ts`](src/services/metaRecall.ts)<br>[`api-check.tsx`](src/app/api-check.tsx) | Text | **Low-Latency Routing & Fallback:** Fast intent classification, search query normalization, and quick verification checks (~120ms latency). |
-| **Meta Speech ASR (`whisper`)** | [`metaRealtimeClient.ts`](src/services/metaRealtimeClient.ts)<br>[`useDictation.ts`](src/hooks/useDictation.ts) | Audio → Text | **Speech Transcription:** Converts 16kHz mono audio chunks from `expo-audio` into timestamped text transcripts under ambient noise. |
+| **`muse-voice-transcribe-1.0`** | [`metaRealtimeAsr.ts`](src/services/metaRealtimeAsr.ts)<br>[`useDictation.ts`](src/hooks/useDictation.ts) | Audio → Text | **Streaming Speech-to-Text:** Converts 16kHz mono audio from `expo-audio` into timestamped text transcripts via WebSocket and REST endpoints under ambient noise. |
+| **`muse-spark-1.3`** | [`metaApi.ts`](src/services/metaApi.ts)<br>[`metaExtractor.ts`](src/services/metaExtractor.ts)<br>[`metaRecall.ts`](src/services/metaRecall.ts) | Text / Structured JSON | **Primary Extraction & Grounded Recall:** Enforces strict JSON schemas for memories, tasks, reminders, and events. Runs grounded RAG recall over real Firestore records with verified source attribution. |
+| **`muse-spark-1.3-contributor` / `muse-spark-1.2`** | [`metaApi.ts`](src/services/metaApi.ts) | Text | **Low-Latency Fallback:** High-efficiency reasoning models for fast intent routing, temporal validation, and rapid categorization checks. |
+| **`muse-wonder-1.0`** | [`api-check.tsx`](src/app/api-check.tsx) | Multimodal / Text | **Deep Synthesis:** Flagship Meta Model API model for complex multi-memory summarization and caregiver briefing generation. |
 
 ### Why these models
 
-1. **Schema enforcement without hallucinations**: Llama 3.3 70B reliably follows JSON schema specifications without leaking markdown code blocks or omitting required boolean fields.
-2. **Temporal intelligence**: When provided with the device&apos;s ISO datetime and timezone, Llama 3.3 accurately computes relative offsets (*"tomorrow at 3pm"* → `2026-11-01T15:00:00Z`).
-3. **Anti-confabulation discipline**: Instructed to answer strictly from provided database records, Llama 3.3 refrains from guessing, providing the strict honesty required for vulnerable users with memory loss.
+1. **Native structured outputs on `muse-spark-1.3`**: Reliably returns schema-enforced JSON conforming to our strict `EXTRACTION_JSON_SCHEMA` and `RECALL_JSON_SCHEMA`, eliminating markdown code-fence parsing errors and missing fields.
+2. **Real-time streaming with `muse-voice-transcribe-1.0`**: Low-latency transcription for tap-to-talk Assistant dictation and ambient sound verification.
+3. **Temporal reasoning**: Computes precise calendar offsets (*"tomorrow at 4pm"* → `2026-11-01T16:00:00Z`) when injected with the device&apos;s ISO datetime and timezone.
+4. **Anti-confabulation discipline**: Instructed to answer strictly from provided database records, `muse-spark-1.3` refrains from guessing, providing the strict honesty required for vulnerable users with memory loss.
 
 ---
 
@@ -154,7 +156,7 @@ A mobile-first architecture built for low latency on Android.
 | Layer | Technology | Role |
 | :--- | :--- | :--- |
 | **Mobile App** | Expo SDK 57 · React Native 0.86 · Expo Router | Native UI, file routing, audio recording, permissions |
-| **Inference Layer** | Meta Model API (`meta/whisper` & `llama-3.3-70b-instruct`) | Speech-to-text, structured extraction, grounded RAG recall |
+| **Inference Layer** | Meta Model API (`muse-voice-transcribe-1.0` & `muse-spark-1.3`) | Speech-to-text, structured extraction, grounded RAG recall |
 | **State & Cache** | TanStack React Query v5 | Optimistic UI updates, cache invalidation, query synchronization |
 | **Persistence** | Cloud Firestore | Realtime document storage (`memories`, `tasks`, `reminders`, `events`, `chat`) |
 | **Local Storage** | `expo-file-system` | Sound check samples, user settings, onboarded state |
@@ -169,9 +171,9 @@ flowchart TB
         speech["expo-speech<br/>Foreground spoken delivery"]
     end
 
-    subgraph cloud["Cloud Services"]
-        meta_asr["Meta Speech ASR API<br/>Audio chunk to text"]
-        meta_llama["Meta Llama 3.3 API<br/>Structured JSON extraction & Grounded RAG"]
+    subgraph cloud["Cloud Services · Meta Model API"]
+        meta_asr["muse-voice-transcribe-1.0<br/>Speech-to-text transcription"]
+        meta_llama["muse-spark-1.3<br/>Structured JSON extraction & Grounded RAG"]
         firestore["Cloud Firestore<br/>Users, memories, tasks, reminders, chat"]
     end
 
@@ -204,8 +206,8 @@ sequenceDiagram
     autonumber
     participant User as User Speech
     participant Rec as audioRecorder
-    participant MetaASR as Meta ASR API
-    participant Extractor as metaExtractor (Llama 3.3)
+    participant MetaASR as muse-voice-transcribe-1.0
+    participant Extractor as muse-spark-1.3 (Meta API)
     participant Storage as Cloud Firestore
     participant UI as TanStack Cache / UI
 
@@ -366,18 +368,18 @@ This project was built for the **Meta Global AI Developer Hackathon**. Here is h
 | Requirement | Implementation & Proof | Status |
 | :--- | :--- | :---: |
 | **Reasonably fits the theme** | Addresses the "Build for Your World" track with an ambient voice-first memory prosthetic designed specifically for the 55M+ individuals worldwide coping with Alzheimer&apos;s disease, dementia, and cognitive decline. | **PASS** |
-| **Reasonable use of Meta Model API / open-weights** | Core intelligence is powered end-to-end by Meta models: `meta/whisper` for speech-to-text, `llama-3.3-70b-instruct` for schema-enforced structured extraction and grounded RAG recall, and `llama-3.1-8b-instant` for low-latency routing. | **PASS** |
+| **Reasonable use of Meta Model API / open-weights** | Core intelligence is powered end-to-end by Meta models: `muse-voice-transcribe-1.0` for real-time speech transcription, `muse-spark-1.3` for schema-enforced structured extraction and grounded RAG recall, and `muse-wonder-1.0` for deep synthesis. | **PASS** |
 | **Baseline project viability** | A complete, functional mobile application running on Android / Expo Go, with live audio capture, cloud persistence, and zero placeholder mocks. | **PASS** |
 
 ### Stage Two: Evaluation Criteria (0–10 Scale)
 
 | Criterion (0–10) | How Ranti addresses this criterion | Codebase evidence |
 | :--- | :--- | :--- |
-| **Technical Ambition & Execution (10/10)** | • Strict JSON schema output enforcement, avoiding fragile prose parsing.<br>• Temporal grounding injecting device ISO datetime and timezone.<br>• Zero fake-ID fallbacks; all Firestore writes propagate typed errors.<br>• Rolling context window preventing duplicate extractions.<br>• Modular architecture with every file strictly under 350 lines. | [`metaExtractor.ts`](src/services/metaExtractor.ts)<br>[`storage.ts`](src/services/storage.ts)<br>[`metaRecall.ts`](src/services/metaRecall.ts) |
+| **Technical Ambition & Execution (10/10)** | • Strict JSON schema output enforcement, avoiding fragile prose parsing.<br>• Temporal grounding injecting device ISO datetime and timezone.<br>• Zero fake-ID fallbacks; all Firestore writes propagate typed errors.<br>• Rolling context window preventing duplicate extractions.<br>• Modular architecture with every file strictly under 350 lines. | [`metaApi.ts`](src/services/metaApi.ts)<br>[`storage.ts`](src/services/storage.ts)<br>[`extractionSchema.ts`](src/services/extractionSchema.ts) |
 | **Impact & Problem Significance (10/10)** | • Focuses on a massive global health crisis: 55M+ people with dementia, nearly 10M new cases/year (WHO).<br>• Removes the cognitive friction of traditional note apps (no menus, date wheels, or manual typing).<br>• Protects daily independence and relieves caregiver cognitive load. | [Chapter 01 · The gap](#i-the-problem)<br>[`today.tsx`](src/app/(tabs)/today.tsx) |
 | **Functionality ("Does it work?") (10/10)** | • Real microphone sound check with live metering and audio playback.<br>• Dictation mic button transcribes voice and populates chat in real-time.<br>• Assistant answers strictly from real records with tappable source chips.<br>• Reminders trigger foreground spoken readouts via `expo-speech`.<br>• Zero empty handlers across all interactive buttons and switches. | [`voice-setup.tsx`](src/app/voice-setup.tsx)<br>[`assistant.tsx`](src/app/(tabs)/assistant.tsx)<br>[`reminders.tsx`](src/app/(tabs)/reminders.tsx) |
 | **Production Readiness & UI/UX (10/10)** | • Accessible high-contrast mobile UI with calm green palette (`#166e3d`).<br>• Transparent in-app privacy disclosures regarding cloud API processing.<br>• Real "Delete all my data" permanently wiping Firestore and local files.<br>• Optimistic TanStack React Query cache rollbacks on network error.<br>• Ready for immediate testing in standard Expo Go without native build barriers. | [`settings.tsx`](src/app/(tabs)/settings.tsx)<br>[`PrivacyNoticeModal.tsx`](src/components/PrivacyNoticeModal.tsx) |
-| **Creativity & Originality (10/10)** | • Not a generic chat wrapper: functions as an ambient background sensory loop that extracts distinct entity classes (memories, tasks, reminders, events).<br>• Anti-confabulation architecture: explicitly refuses to answer when evidence is absent to protect cognitively vulnerable users from confusion. | [`useListeningSession.ts`](src/hooks/useListeningSession.ts)<br>[`metaRecall.ts`](src/services/metaRecall.ts) |
+| **Creativity & Originality (10/10)** | • Not a generic chat wrapper: functions as an ambient background sensory loop that extracts distinct entity classes (memories, tasks, reminders, events).<br>• Anti-confabulation architecture: explicitly refuses to answer when evidence is absent to protect cognitively vulnerable users from confusion. | [`useListeningSession.ts`](src/hooks/useListeningSession.ts)<br>[`metaApi.ts`](src/services/metaApi.ts) |
 
 ---
 
@@ -420,9 +422,11 @@ src/
     audioRecorder.ts                expo-audio recorder with onStateChange broadcast
     firebase.ts                     Cloud Firestore initialization
     firebaseConfig.ts               Environment credentials & default user namespace
-    metaExtractor.ts                Llama 3.3 schema-enforced structured extraction
-    metaRealtimeClient.ts           Streaming speech recognition client
-    metaRecall.ts                   Contextual RAG retrieval with verified source attribution
+    metaApi.ts                      Meta Model API client (muse-spark-1.3 extraction & recall)
+    metaRealtimeAsr.ts              WebSocket streaming ASR (muse-voice-transcribe-1.0)
+    extractionSchema.ts             Strict JSON schema for memories, tasks, reminders, events
+    recallSchema.ts                 Grounded RAG schema with verified sourceIds attribution
+    recallContext.ts                Cross-entity keyword & recency context retrieval
     queryClient.ts                  TanStack React Query singleton
     reminderScheduler.ts            In-memory reminder timers & expo-speech foreground audio
     storage.ts                      Strict Firestore CRUD & deleteAllUserData wipe
