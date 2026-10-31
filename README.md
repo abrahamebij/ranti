@@ -3,7 +3,7 @@
 <h1 align="center">Ranti</h1>
 
 <p align="center">
-  <strong>A little less to remember.</strong><br>
+  <strong>A little more to remember.</strong><br>
   Voice-first memory prosthetic built specifically for individuals living with Alzheimer&apos;s disease, dementia, and cognitive impairment. Powered by Meta Llama on Android.
 </p>
 
