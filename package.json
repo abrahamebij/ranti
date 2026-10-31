@@ -38,12 +38,6 @@
     "tailwindcss": "^4.3.3",
     "uniwind": "^1.13.0"
   },
-  "pnpm": {
-    "ignoredBuiltDependencies": [
-      "@firebase/util",
-      "protobufjs"
-    ]
-  },
   "devDependencies": {
     "@types/react": "~19.2.2",
     "typescript": "~6.0.3"
