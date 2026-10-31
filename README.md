@@ -23,6 +23,8 @@
   <sub>ANDROID &nbsp; / &nbsp; EXPO SDK 57 &nbsp; / &nbsp; REACT NATIVE 0.86 &nbsp; / &nbsp; META MODEL API &nbsp; / &nbsp; CLOUD FIRESTORE</sub>
 </p>
 
+![Project Cover](https://i.ibb.co/4nxB9YKD/Design-Ranti-brand-banner-818bf499.jpg)
+
 ---
 
 Memory capture is **one continuous loop**: listen to spoken thoughts, stream chunks to Meta's Cloud API, enforce strict structured schemas, and persist memories, tasks, reminders, and events into Cloud Firestore with temporal grounding.
@@ -91,7 +93,7 @@ For millions of individuals and families, this is not a casual inconvenience. It
 > According to the **World Health Organization (WHO)**, more than **55 million people** worldwide are currently living with dementia, with Alzheimer&apos;s disease contributing to 60–70% of cases.
 >
 > **Nearly 10 million new cases are diagnosed every year** — equivalent to one new person developing dementia **every 3.2 seconds**.
-> The total number of people living with dementia is projected to surge to **78 million by 2030** and **139 million by 2050**, driven by an aging global population ([WHO Dementia Fact Sheet, 2023](https://www.who.int/news-room/fact-sheets/detail/dementia)).
+> The total number of people living with dementia is projected to surge to **78 million by 2030** and **139 million by 2050**, driven by an aging global population ([WHO Dementia Fact Sheet, 2023 - https://www.who.int/news-room/fact-sheets/detail/dementia](https://www.who.int/news-room/fact-sheets/detail/dementia)).
 
 ### Why conventional digital tools fail
 
@@ -363,15 +365,7 @@ To prevent monolithic files and maintain modular readability, every file in `src
 
 This project was built for the **Meta Global AI Developer Hackathon**. Here is how Ranti addresses each evaluation stage and scoring dimension:
 
-### Stage One: Baseline Viability & API Usage (Pass / Fail)
-
-| Requirement | Implementation & Proof | Status |
-| :--- | :--- | :---: |
-| **Reasonably fits the theme** | Addresses the "Build for Your World" track with an ambient voice-first memory prosthetic designed specifically for the 55M+ individuals worldwide coping with Alzheimer&apos;s disease, dementia, and cognitive decline. | **PASS** |
-| **Reasonable use of Meta Model API / open-weights** | Core intelligence is powered end-to-end by Meta models: `muse-voice-transcribe-1.0` for real-time speech transcription, `muse-spark-1.3` for schema-enforced structured extraction and grounded RAG recall, and `muse-wonder-1.0` for deep synthesis. | **PASS** |
-| **Baseline project viability** | A complete, functional mobile application running on Android / Expo Go, with live audio capture, cloud persistence, and zero placeholder mocks. | **PASS** |
-
-### Stage Two: Evaluation Criteria (0–10 Scale)
+### Evaluation Criteria (0–10 Scale)
 
 | Criterion (0–10) | How Ranti addresses this criterion | Codebase evidence |
 | :--- | :--- | :--- |
