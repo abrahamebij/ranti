@@ -34,7 +34,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/log.png"
     },
     "plugins": [
       "expo-router",
@@ -42,7 +42,7 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#F8F8F8",
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/logo.png",
           "imageWidth": 76
         }
       ],

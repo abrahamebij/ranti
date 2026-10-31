@@ -1,4 +1,5 @@
 import { Ionicons } from "@react-native-vector-icons/ionicons";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
@@ -24,20 +25,23 @@ export default function WelcomeScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Top Tagline */}
-        <Text className="text-sm text-foreground-secondary mt-2 mb-4">
-          A little more to remember.
-        </Text>
-
         {/* Hero Section */}
-        <View className="mb-6">
-          <View className="w-12 h-12 bg-primary rounded-2xl items-center justify-center mb-3">
-            <Text className="text-primary-foreground text-xl font-bold">
-              r.
-            </Text>
-          </View>
-          <Text className="text-4xl font-bold text-foreground mb-1">Ranti</Text>
-          <Text className="text-base text-foreground-secondary">
+        <View className="my-6">
+          <Image
+            contentFit="cover"
+            style={{
+              width: 80,
+              height: 80,
+              alignSelf: "center",
+              marginBottom: 12,
+            }}
+            transition={1000}
+            source={require("../../assets/images/logo.png")}
+          />
+          <Text className="text-4xl font-bold text-foreground mb-1 text-center">
+            Ranti
+          </Text>
+          <Text className="text-base text-foreground-secondary text-center">
             Your AI-powered memory assistant.
           </Text>
         </View>
