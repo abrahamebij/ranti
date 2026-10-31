@@ -25,8 +25,12 @@
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.POST_NOTIFICATIONS",
-        "android.permission.SCHEDULE_EXACT_ALARM"
-      ]
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ],
+      "package": "com.abrahamebij.ranti"
     },
     "web": {
       "output": "static",
@@ -52,10 +56,24 @@
         }
       ],
       [
-        "expo-notifications",
+        "expo-build-properties",
         {
-          "icon": "./assets/images/android-icon-monochrome.png",
-          "color": "#166e3d"
+          "android": {
+            "ndkVersion": "30.0.16248370"
+          }
+        }
+      ],
+      [
+        "expo-dev-client",
+        {
+          "launchMode": "most-recent",
+          "defaultLaunchURL": "http://localhost:8081",
+          "android": {
+            "defaultLaunchURL": "http://10.0.2.2:8081"
+          },
+          "toolsButton": true,
+          "skipOnboarding": false,
+          "showMenuAtLaunch": true
         }
       ]
     ],

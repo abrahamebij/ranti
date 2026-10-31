@@ -1,87 +1,31 @@
-import * as Notifications from 'expo-notifications';
 import * as Speech from 'expo-speech';
-import { Platform } from 'react-native';
 import { Reminder } from '../types';
 import { userSettingsService } from './userSettings';
 
 export const REMINDER_CHANNEL_ID = 'ranti-reminders';
 
-// Configure foreground notification behavior: alert banner + sound
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
-
-let isInitialized = false;
+// Active in-memory timers for foreground spoken delivery
+const activeTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 export const reminderScheduler = {
   /**
-   * Initialize notification channels and listeners.
+   * Initialize reminder system. (Native notifications disabled for Expo Go compatibility)
    */
   async init(): Promise<void> {
-    if (isInitialized) return;
-
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync(REMINDER_CHANNEL_ID, {
-        name: 'Ranti Reminders',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#166e3d',
-        sound: 'default',
-        enableVibrate: true,
-        showBadge: true,
-      });
-    }
-
-    // Foreground listener for spoken delivery
-    Notifications.addNotificationReceivedListener(async (notification) => {
-      try {
-        const settings = await userSettingsService.getSettings();
-        const data = notification.request.content.data;
-        const preference = data?.deliveryPreference ?? settings.deliveryPreference;
-        const title = notification.request.content.title;
-
-        if (preference === 'audio' && title) {
-          const isSpeaking = await Speech.isSpeakingAsync().catch(() => false);
-          if (isSpeaking) {
-            Speech.stop();
-          }
-          Speech.speak(`Reminder: ${title}`, { language: 'en', rate: 0.95 });
-        }
-      } catch (err) {
-        console.warn('[reminderScheduler] Foreground listener speech error:', err);
-      }
-    });
-
-    isInitialized = true;
+    // In Expo Go, native notifications require a dev build.
+    // Foreground audio delivery via expo-speech remains active.
   },
 
   /**
-   * Request notification permissions. Should be called contextually (e.g. when creating a reminder).
+   * Request notification permissions stub.
    */
   async requestPermissions(): Promise<boolean> {
-    await this.init();
-    try {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      return finalStatus === 'granted';
-    } catch (e) {
-      console.warn('[reminderScheduler] Error requesting notification permissions:', e);
-      return false;
-    }
+    return true;
   },
 
   /**
-   * Schedule a notification for a reminder date. Returns the scheduled notificationId.
+   * Schedule a reminder. Sets an in-memory timer for foreground spoken delivery
+   * if scheduled in the future and audio preference is active.
    */
   async scheduleReminder(reminder: {
     id?: string;
@@ -89,88 +33,93 @@ export const reminderScheduler = {
     scheduledAt: string;
     deliveryPreference?: 'audio' | 'notification';
   }): Promise<string | null> {
-    await this.init();
-
     const targetDate = new Date(reminder.scheduledAt);
     const now = new Date();
+    const delay = targetDate.getTime() - now.getTime();
 
-    if (targetDate.getTime() <= now.getTime()) {
+    if (delay <= 0) {
       return null;
     }
 
-    try {
-      const settings = await userSettingsService.getSettings();
-      const preference = reminder.deliveryPreference ?? settings.deliveryPreference ?? 'notification';
+    const timerId = reminder.id || `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-      const notificationId = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: reminder.title,
-          body: `Scheduled for ${targetDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-          data: {
-            reminderId: reminder.id,
-            deliveryPreference: preference,
-          },
-          channelId: REMINDER_CHANNEL_ID,
-          sound: true,
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: targetDate,
-          channelId: REMINDER_CHANNEL_ID,
-        },
-      });
-
-      return notificationId;
-    } catch (e) {
-      console.error('[reminderScheduler] Failed to schedule notification:', e);
-      return null;
+    // Cancel any existing timer for this ID
+    if (activeTimers.has(timerId)) {
+      clearTimeout(activeTimers.get(timerId)!);
+      activeTimers.delete(timerId);
     }
+
+    // Schedule in-memory speech trigger if delay is within 32-bit int limit (~24 days)
+    if (delay < 2147483647) {
+      const timer = setTimeout(async () => {
+        try {
+          const settings = await userSettingsService.getSettings();
+          const preference = reminder.deliveryPreference ?? settings.deliveryPreference;
+
+          if (preference === 'audio') {
+            const isSpeaking = await Speech.isSpeakingAsync().catch(() => false);
+            if (isSpeaking) {
+              await Speech.stop();
+            }
+            Speech.speak(`Reminder: ${reminder.title}`, { language: 'en', rate: 0.95 });
+          }
+        } catch (err) {
+          console.warn('[reminderScheduler] In-memory speech trigger error:', err);
+        } finally {
+          activeTimers.delete(timerId);
+        }
+      }, delay);
+
+      activeTimers.set(timerId, timer);
+    }
+
+    return timerId;
   },
 
   /**
-   * Cancel an existing notification by ID.
+   * Cancel an existing reminder timer.
    */
   async cancelReminder(notificationId?: string): Promise<void> {
     if (!notificationId) return;
-    try {
-      await Notifications.cancelScheduledNotificationAsync(notificationId);
-    } catch (e) {
-      console.warn('[reminderScheduler] Failed to cancel notification:', notificationId, e);
+    const timer = activeTimers.get(notificationId);
+    if (timer) {
+      clearTimeout(timer);
+      activeTimers.delete(notificationId);
     }
   },
 
   /**
    * Reconcile all pending reminders on app startup:
-   * Reschedules any future reminders that lack a notificationId or aren't currently scheduled.
+   * Re-arms in-memory spoken reminders for future events.
    */
   async reconcileReminders(
     reminders: Reminder[],
-    updateReminderFn: (id: string, patch: Partial<Reminder>) => Promise<void>
+    _updateReminderFn: (id: string, patch: Partial<Reminder>) => Promise<void>
   ): Promise<void> {
-    await this.init();
+    const nowMs = Date.now();
 
+    for (const r of reminders) {
+      if (r.status !== 'pending') continue;
+
+      const scheduledTime = new Date(r.scheduledAt).getTime();
+      if (scheduledTime <= nowMs) continue;
+
+      await this.scheduleReminder(r);
+    }
+  },
+
+  /**
+   * Manually speak a reminder immediately using expo-speech.
+   */
+  async speakReminderNow(title: string): Promise<void> {
     try {
-      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-      const activeNotificationIds = new Set(scheduled.map((s) => s.identifier));
-      const nowMs = Date.now();
-
-      for (const r of reminders) {
-        if (r.status !== 'pending') continue;
-
-        const scheduledTime = new Date(r.scheduledAt).getTime();
-        if (scheduledTime <= nowMs) continue; // Past reminder
-
-        const isCurrentlyScheduled = r.notificationId && activeNotificationIds.has(r.notificationId);
-
-        if (!isCurrentlyScheduled) {
-          const newId = await this.scheduleReminder(r);
-          if (newId) {
-            await updateReminderFn(r.id, { notificationId: newId });
-          }
-        }
+      const isSpeaking = await Speech.isSpeakingAsync().catch(() => false);
+      if (isSpeaking) {
+        await Speech.stop();
       }
-    } catch (err) {
-      console.warn('[reminderScheduler] Reconcile error:', err);
+      Speech.speak(`Reminder: ${title}`, { language: 'en', rate: 0.95 });
+    } catch (e) {
+      console.warn('[reminderScheduler] Failed to speak reminder:', e);
     }
   },
 };
