@@ -3,7 +3,7 @@
 <h1 align="center">Ranti</h1>
 
 <p align="center">
-  <strong>A little less to remember.</strong><br>
+  <strong>A little more to remember.</strong><br>
   Ambient audio memory capture and contextual recall on Android. Powered by Meta Llama.
 </p>
 
@@ -87,6 +87,7 @@ The friction of manual note-taking is fatal. To log a reminder, a person must un
 **Speech is high-bandwidth, but raw audio is unsearchable.** Having 40 hours of voice memos is no better than having none: nobody can re-listen to hours of tape to find where they put their passport.
 
 Ranti bridges that gap:
+
 1. **Low-friction capture**: Push-to-talk dictation or ambient listening sessions record natural speech.
 2. **Schema-enforced distillation**: Meta Llama extracts distinct entity types (memories, tasks, reminders, events) with temporal grounding.
 3. **Honest retrieval**: An assistant that answers strictly from those records, linking every claim directly to the underlying memory card.
@@ -182,13 +183,17 @@ sequenceDiagram
 ```
 
 ### 1 · Rolling context deduplication
+
 Extracting audio in chunks risks saving the same memory multiple times if a thought spans a chunk boundary. `metaExtractor` maintains a rolling context window:
+
 - The previous transcript snippet.
 - The titles of recently extracted memories.
 - A deterministic similarity check on normalized content before writing to Firestore.
 
 ### 2 · Honest error handling
+
 `storage.ts` contains **zero fake fallback IDs**. When an item fails validation or a network connection drops:
+
 - Undefined fields are stripped before Firestore rejection.
 - Default fields (`completed: false`, `createdAt: ISOString`) are guaranteed.
 - If a write fails, typed `StorageError` exceptions propagate directly to the UI, presenting an actionable retry prompt.
@@ -236,6 +241,7 @@ Reminders are saved with concrete ISO timestamps and real scheduled dates.
 Ranti's value rests entirely on trust. We state our technical boundaries plainly:
 
 ### What is true and what is disclosed
+
 - **Cloud processing disclosure**: Audio is transmitted securely over HTTPS to Meta's Cloud API endpoints for speech recognition and extraction. **Ranti does not claim on-device processing.**
 - **First-use transparency**: A dedicated Privacy & Data notice is presented on first launch before onboarding, detailing what is recorded, where audio is processed, what is stored in Firestore, and how to delete it.
 - **Real "Delete all my data"**: In Settings, a dedicated destructive action permanently erases:
@@ -290,6 +296,7 @@ Catching a Firestore write error and returning a temporary fake ID (`temp-${Date
 <summary><strong>6. Memory management: in-place edit and delete with confirmation</strong></summary>
 
 The ellipsis menu on memory detail screens is fully wired to Firestore mutations:
+
 - **Edit**: Updates memory title and content in-place with real-time optimistic cache updates.
 - **Delete**: Displays native alert confirmation, deletes the Firestore document, cancels in-flight queries, and navigates back smoothly.
 
@@ -465,6 +472,6 @@ This is the repository's recorded verification status. Everything below has been
 <p align="center">
   <br>
   <strong>Ranti</strong><br>
-  <sub>A little less to remember.</sub><br><br>
+  <sub>A little more to remember.</sub><br><br>
   <a href="#top">Back to top ↑</a>
 </p>
