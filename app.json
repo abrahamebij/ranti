@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "ranti",
+    "name": "Ranti",
     "slug": "ranti",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo.png",
     "scheme": "ranti",
     "userInterfaceStyle": "light",
     "ios": {
@@ -13,15 +13,15 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#F8F8F8",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/logo.png",
+        "backgroundImage": "./assets/images/background.jpg",
+        "monochromeImage": "./assets/images/logo.png"
       },
       "predictiveBackGestureEnabled": false,
-      "navigationBar": {
-        "backgroundColor": "#F8F8F8",
-        "barStyle": "dark-content"
-      },
+      // "navigationBar": {
+      //   "backgroundColor": "#F8F8F8",
+      //   "barStyle": "dark-content"
+      // },
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.POST_NOTIFICATIONS",
@@ -55,31 +55,16 @@
           "recordAudioAndroid": true
         }
       ]
-      // [
-      //   "expo-build-properties",
-      //   {
-      //     "android": {
-      //       "ndkVersion": "30.0.16248370"
-      //     }
-      //   }
-      // ],
-      // [
-      //   "expo-dev-client",
-      //   {
-      //     "launchMode": "most-recent",
-      //     "defaultLaunchURL": "http://localhost:8081",
-      //     "android": {
-      //       "defaultLaunchURL": "http://10.0.2.2:8081"
-      //     },
-      //     "toolsButton": true,
-      //     "skipOnboarding": false,
-      //     "showMenuAtLaunch": true
-      //   }
-      // ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "890ced99-c101-4903-8dbf-99682f5cb613"
+      }
     }
   }
 }
