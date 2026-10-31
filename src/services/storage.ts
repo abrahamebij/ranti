@@ -19,14 +19,29 @@ export class StorageError extends Error {
   }
 }
 
-function cleanRecord<T extends Record<string, unknown>>(data: T): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(data)) {
-    if (value !== undefined) {
-      result[key] = value;
-    }
+/**
+ * Firestore rejects `undefined` anywhere in a document, including inside
+ * nested objects and arrays (for example people: [{ name, relation: undefined }]).
+ * Strip it recursively before every write.
+ */
+function stripUndefined(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.filter((v) => v !== undefined).map(stripUndefined);
   }
-  return result;
+  if (value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+    const result: Record<string, unknown> = {};
+    for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
+      if (v !== undefined) {
+        result[key] = stripUndefined(v);
+      }
+    }
+    return result;
+  }
+  return value;
+}
+
+function cleanRecord<T extends Record<string, unknown>>(data: T): Record<string, unknown> {
+  return stripUndefined(data) as Record<string, unknown>;
 }
 
 export const storageService = {

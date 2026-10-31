@@ -219,10 +219,12 @@ ${prevChunk}`;
       title: String(m.title || 'Untitled Memory').trim(),
       content: String(m.content || '').trim(),
       category: VALID_CATEGORIES.has(m.category) ? m.category : 'General',
-      people: (m.people || []).map((p: any) => ({
-        name: String(p.name || '').trim(),
-        relation: p.relation ? String(p.relation).trim() : undefined,
-      })),
+      people: (m.people || [])
+        .map((p: any) => ({
+          name: String(p?.name || '').trim(),
+          relation: p?.relation ? String(p.relation).trim() : undefined,
+        }))
+        .filter((p: { name: string }) => p.name.length > 0),
     }));
 
     const tasks = (parsed.tasks || []).map((t: any) => ({
