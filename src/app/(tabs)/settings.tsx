@@ -17,19 +17,21 @@ import { PrivacyNoticeModal } from "../../components/PrivacyNoticeModal";
 import { SettingsRow } from "../../components/SettingsRow";
 import { Switch } from "../../components/Switch";
 import { useListeningSession } from "../../hooks/useListeningSession";
+import { colors } from "../../lib/colors";
 import { queryClient } from "../../services/queryClient";
 import { storageService } from "../../services/storage";
-import { userSettingsService, UserSettings } from "../../services/userSettings";
-import { colors } from "../../lib/colors";
+import { UserSettings, userSettingsService } from "../../services/userSettings";
 
 export default function SettingsScreen() {
   const { isListening, startListening, stopListening } = useListeningSession();
   const [notifications, setNotifications] = useState(true);
-  const [deliveryPreference, setDeliveryPreference] = useState<'audio' | 'notification'>('notification');
+  const [deliveryPreference, setDeliveryPreference] = useState<
+    "audio" | "notification"
+  >("notification");
   const [settings, setSettings] = useState<UserSettings>({
     isOnboarded: true,
     displayName: "Friend",
-    deliveryPreference: 'notification',
+    deliveryPreference: "notification",
     notificationsEnabled: true,
   });
   const [isEditingName, setIsEditingName] = useState(false);
@@ -42,7 +44,8 @@ export default function SettingsScreen() {
       setSettings(s);
       setNewName(s.displayName);
       if (s.deliveryPreference) setDeliveryPreference(s.deliveryPreference);
-      if (s.notificationsEnabled !== undefined) setNotifications(s.notificationsEnabled);
+      if (s.notificationsEnabled !== undefined)
+        setNotifications(s.notificationsEnabled);
     });
   }, []);
 
@@ -63,15 +66,19 @@ export default function SettingsScreen() {
   };
 
   const toggleDeliveryPreference = async () => {
-    const next = deliveryPreference === 'audio' ? 'notification' : 'audio';
+    const next = deliveryPreference === "audio" ? "notification" : "audio";
     setDeliveryPreference(next);
-    const updated = await userSettingsService.saveSettings({ deliveryPreference: next });
+    const updated = await userSettingsService.saveSettings({
+      deliveryPreference: next,
+    });
     setSettings(updated);
   };
 
   const toggleNotifications = async (val: boolean) => {
     setNotifications(val);
-    const updated = await userSettingsService.saveSettings({ notificationsEnabled: val });
+    const updated = await userSettingsService.saveSettings({
+      notificationsEnabled: val,
+    });
     setSettings(updated);
   };
 
@@ -97,18 +104,20 @@ export default function SettingsScreen() {
               Alert.alert(
                 "Data deleted",
                 "All your cloud and local data has been permanently removed.",
-                [{ text: "OK", onPress: () => router.replace("/") }]
+                [{ text: "OK", onPress: () => router.replace("/") }],
               );
             } catch (e) {
               setIsDeleting(false);
               Alert.alert(
                 "Delete failed",
-                e instanceof Error ? e.message : "Failed to delete all data. Please try again."
+                e instanceof Error
+                  ? e.message
+                  : "Failed to delete all data. Please try again.",
               );
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -142,7 +151,9 @@ export default function SettingsScreen() {
               className="flex-row items-center gap-3"
             >
               <View className="w-11 h-11 rounded-full bg-tag-bg items-center justify-center">
-                <Text className="text-sm font-bold text-tag-text">{initials || "R"}</Text>
+                <Text className="text-sm font-bold text-tag-text">
+                  {initials || "R"}
+                </Text>
               </View>
               <View className="flex-1">
                 <Text className="text-base font-semibold text-foreground">
@@ -205,7 +216,10 @@ export default function SettingsScreen() {
             title="Notifications"
             subtitle={`${notifications ? "On" : "Off"} · Reminders and tasks`}
             trailing={
-              <Switch value={notifications} onValueChange={toggleNotifications} />
+              <Switch
+                value={notifications}
+                onValueChange={toggleNotifications}
+              />
             }
             showDivider={false}
           />
@@ -234,24 +248,18 @@ export default function SettingsScreen() {
 
         {/* Footer */}
         <View className="px-5 gap-3">
-          <View className="flex-row items-center gap-2">
-            <Ionicons
-              name="shield-checkmark-outline"
-              size={14}
-              color={colors.muted}
-            />
-            <Text className="text-xs text-muted">
-              You choose when Ranti listens.
-            </Text>
-          </View>
-          <Text className="text-xs text-muted">Ranti · Version 1.0</Text>
-
           {__DEV__ && (
             <TouchableOpacity
               onPress={() => router.push("/api-check")}
               style={{ marginTop: 16, paddingVertical: 8 }}
             >
-              <Text style={{ fontSize: 12, color: colors.muted, textDecorationLine: "underline" }}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colors.muted,
+                  textDecorationLine: "underline",
+                }}
+              >
                 Dev: API connection check
               </Text>
             </TouchableOpacity>
@@ -263,8 +271,12 @@ export default function SettingsScreen() {
       <Modal visible={isEditingName} transparent animationType="fade">
         <View className="flex-1 bg-black/50 justify-center px-6">
           <View className="bg-surface rounded-2xl p-6 border border-border">
-            <Text className="text-lg font-bold text-foreground mb-2">Edit Display Name</Text>
-            <Text className="text-xs text-muted mb-4">What should Ranti call you?</Text>
+            <Text className="text-lg font-bold text-foreground mb-2">
+              Edit Display Name
+            </Text>
+            <Text className="text-xs text-muted mb-4">
+              What should Ranti call you?
+            </Text>
             <TextInput
               value={newName}
               onChangeText={setNewName}
@@ -284,7 +296,9 @@ export default function SettingsScreen() {
                 onPress={saveName}
                 className="bg-primary px-5 py-2 rounded-full"
               >
-                <Text className="text-sm font-semibold text-primary-foreground">Save</Text>
+                <Text className="text-sm font-semibold text-primary-foreground">
+                  Save
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -296,7 +310,9 @@ export default function SettingsScreen() {
         <View className="flex-1 bg-black/60 items-center justify-center px-6">
           <View className="bg-surface rounded-2xl p-6 items-center border border-border gap-3">
             <ActivityIndicator size="large" color="#b91c1c" />
-            <Text className="text-sm font-bold text-foreground">Deleting all data...</Text>
+            <Text className="text-sm font-bold text-foreground">
+              Deleting all data...
+            </Text>
             <Text className="text-xs text-muted text-center">
               Permanently erasing Firestore documents and local files.
             </Text>
