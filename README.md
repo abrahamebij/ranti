@@ -30,12 +30,7 @@
 
 ![Project Cover](https://i.ibb.co/4nxB9YKD/Design-Ranti-brand-banner-818bf499.jpg)
 
-Memory capture is **one continuous loop**: listen to spoken thoughts, stream chunks to Meta's Cloud API, enforce strict structured schemas, and persist memories, tasks, reminders, and events into Cloud Firestore with temporal grounding.
-
-Recall answers questions with **verified attribution**: every fact cites a stable ID from the user's real records, or plainly admits it has no record.
-
-<details open>
-<summary><strong>Contents — the product, the engineering, the evidence</strong></summary>
+## Contents — the product, the engineering, the evidence
 
 | | Chapter | |
 | :--- | :--- | :--- |
@@ -53,8 +48,6 @@ Recall answers questions with **verified attribution**: every fact cites a stabl
 | 12 | [Repository map](#xi-the-map) | Where the moving parts live |
 | 13 | [Run locally](#xii-running-it) | Install, configure, test in Expo Go |
 | 14 | [What works today](#xiii-what-is-true-and-what-is-not) | Observed, unobserved, absent |
-
-</details>
 
 ---
 
@@ -107,9 +100,9 @@ When you speak to Ranti, you never organize folders, configure tags, or manually
 
 ## 03 · Demo & download
 
-![Ranti demo](./assets/demo.gif)
+**[Download the live Android APK for testing](https://github.com/abrahamebij/ranti/releases/download/V1.0.0/application-7b99c878-e947-417c-be25-3f241009a633.apk)**
 
-**[Download the Android APK](YOUR_APK_DOWNLOAD_URL)**
+![Ranti demo](./assets/demo.gif)
 
 ---
 
