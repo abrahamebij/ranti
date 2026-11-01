@@ -100,7 +100,7 @@ When you speak to Ranti, you never organize folders, configure tags, or manually
 
 ## 03 · Demo & download
 
-**[Download the live Android APK for testing](https://github.com/abrahamebij/ranti/releases/download/V1.0.0/application-7b99c878-e947-417c-be25-3f241009a633.apk)**
+**[Download the live Android APK for testing](https://github.com/abrahamebij/ranti/releases)**
 
 ![Ranti demo](./assets/demo.gif)
 
