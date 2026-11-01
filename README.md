@@ -31,33 +31,7 @@ Memory capture is **one continuous loop**: listen to spoken thoughts, stream chu
 
 Recall answers questions with **verified attribution**: every fact cites a stable ID from the user's real records, or plainly admits it has no record.
 
-| Pipeline step | Target | Measured behavior | Boundary |
-| :--- | :---: | :---: | :--- |
-| **Microphone metering** | 120ms polling | Live RMS energy waveform during sound check | Local audio session only |
-| **Dictation recording** | 16kHz mono M4A | Fast tap-to-talk transcription into Assistant input | Active modal dictation |
-| **Speech-to-text** | `muse-voice-transcribe-1.0` | Real-time speech transcribed into timestamped text | WSS / HTTPS streaming |
-| **Structured extraction** | `muse-spark-1.3` | Memories, tasks, reminders & events in JSON schema | Strict schema enforcement |
-| **Firestore write** | Cloud Firestore | Atomic document creation with real generated IDs | Zero fake-ID fallbacks |
-| **Contextual recall** | `muse-spark-1.3` (RAG) | Cross-entity retrieval with verified source chips | Strict anti-hallucination refusal |
-
-<p align="center"><sub>Recorded October 2026 · physical Android device & Expo Go · Meta Model API.<br>Every control verified — zero placeholder handlers. Full evidence in <a href="#xiii-what-is-true-and-what-is-not">What works today</a>.</sub></p>
-
-> **The record is the truth.**
->
-> For individuals living with Alzheimer&apos;s disease, dementia, or age-related memory impairment, everyday memory gaps create anxiety, confusion, and loss of independence.
-> Traditional note apps fail because they require the very executive function that cognitive decline impairs.
-> Ranti listens when permitted, extracts structured facts without manual typing, and answers only from verified records.
-
-| What has been observed on device | Where the boundary is |
-| :--- | :--- |
-| Real microphone recording, live metering waveform, and audio playback | Voice setup verifies input levels; does not run biometric speaker identification. |
-| Schema-enforced extraction separating memories, tasks, reminders, and calendar events | Audio is processed via Meta Cloud APIs, not on-device. |
-| Temporal resolution resolving "tomorrow at 3pm" to concrete ISO timestamps | Resolves relative times from injected device timezone; never fabricates a missing hour. |
-| Assistant answering from real database items with tappable source chips | Answers are strictly grounded in retrieved records; asks for clarification when missing. |
-| Foreground spoken reminders reading titles aloud via `expo-speech` | Spoken reminders run while app is open; native notifications require a dev build. |
-| Complete data wipe erasing all Firestore user collections and local files | Deletion permanently wipes cloud documents and device storage; irreversible. |
-
-<details>
+<details open>
 <summary><strong>Contents — the product, the engineering, the evidence</strong></summary>
 
 | | Chapter | |
