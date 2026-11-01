@@ -27,6 +27,16 @@
 
 ---
 
+<a id="demo"></a>
+
+## 03 · Demo & download
+
+![Ranti demo](./assets/demo.gif)
+
+**[Download the Android APK](YOUR_APK_DOWNLOAD_URL)**
+
+---
+
 Memory capture is **one continuous loop**: listen to spoken thoughts, stream chunks to Meta's Cloud API, enforce strict structured schemas, and persist memories, tasks, reminders, and events into Cloud Firestore with temporal grounding.
 
 Recall answers questions with **verified attribution**: every fact cites a stable ID from the user's real records, or plainly admits it has no record.
@@ -38,17 +48,18 @@ Recall answers questions with **verified attribution**: every fact cites a stabl
 | :--- | :--- | :--- |
 | 01 | [The gap](#i-the-problem) | Alzheimer's, memory decline & why digital notes fail |
 | 02 | [The promise](#ii-the-one-idea) | Ambient capture, structured extraction, anti-confabulation |
-| 03 | [Meta models used](#iii-meta-models) | muse-spark-1.3, muse-voice-transcribe-1.0, muse-wonder-1.0 |
-| 04 | [Architecture](#iv-the-shape) | Mobile frontend, Meta inference, Cloud Firestore |
-| 05 | [The life of a memory](#v-the-life-of-a-memory) | Record, transcribe, ground, extract, save |
-| 06 | [Grounding & recall](#vi-grounding-and-recall) | Cross-entity context and tappable source chips |
-| 07 | [Reminders & spoken delivery](#vii-reminders-and-delivery) | In-memory timers and foreground speech |
-| 08 | [Privacy & data sovereignty](#viii-privacy) | Cloud processing disclosure and real deletion |
-| 09 | [Engineering decisions](#ix-the-decisions) | Eight architectural choices and lessons |
-| 10 | [Judging rubric alignment](#x-judging-rubric) | Stages One & Two: criteria and evidence |
-| 11 | [Repository map](#xi-the-map) | Where the moving parts live |
-| 12 | [Run locally](#xii-running-it) | Install, configure, test in Expo Go |
-| 13 | [What works today](#xiii-what-is-true-and-what-is-not) | Observed, unobserved, absent |
+| 03 | [Demo & download](#demo) | Product walkthrough and Android APK |
+| 04 | [Meta models used](#iii-meta-models) | muse-spark-1.3, muse-voice-transcribe-1.0, muse-wonder-1.0 |
+| 05 | [Architecture](#iv-the-shape) | Mobile frontend, Meta inference, Cloud Firestore |
+| 06 | [The life of a memory](#v-the-life-of-a-memory) | Record, transcribe, ground, extract, save |
+| 07 | [Grounding & recall](#vi-grounding-and-recall) | Cross-entity context and tappable source chips |
+| 08 | [Reminders & spoken delivery](#vii-reminders-and-delivery) | In-memory timers and foreground speech |
+| 09 | [Privacy & data sovereignty](#viii-privacy) | Cloud processing disclosure and real deletion |
+| 10 | [Engineering decisions](#ix-the-decisions) | Eight architectural choices and lessons |
+| 11 | [Judging rubric alignment](#x-judging-rubric) | Stages One & Two: criteria and evidence |
+| 12 | [Repository map](#xi-the-map) | Where the moving parts live |
+| 13 | [Run locally](#xii-running-it) | Install, configure, test in Expo Go |
+| 14 | [What works today](#xiii-what-is-true-and-what-is-not) | Observed, unobserved, absent |
 
 </details>
 
@@ -103,7 +114,7 @@ When you speak to Ranti, you never organize folders, configure tags, or manually
 
 <a id="iii-meta-models"></a>
 
-## 03 · Meta models used
+## 04 · Meta models used
 
 Ranti utilizes Meta&apos;s official **Meta Model API** suite (as provisioned in the Meta Global AI Developer Hackathon) to power the entire voice-to-memory loop:
 
@@ -125,7 +136,7 @@ Ranti utilizes Meta&apos;s official **Meta Model API** suite (as provisioned in 
 
 <a id="iv-the-shape"></a>
 
-## 04 · Architecture
+## 05 · Architecture
 
 A mobile-first architecture built for low latency on Android.
 
@@ -173,7 +184,7 @@ flowchart TB
 
 <a id="v-the-life-of-a-memory"></a>
 
-## 05 · The life of a memory
+## 06 · The life of a memory
 
 From spoken phrase to persisted database record with zero data loss.
 
@@ -217,7 +228,7 @@ Extracting audio in chunks risks saving the same memory multiple times if a thou
 
 <a id="vi-grounding-and-recall"></a>
 
-## 06 · Grounding & recall
+## 07 · Grounding & recall
 
 The Assistant does not chat loosely. It answers from your real life.
 
@@ -239,7 +250,7 @@ Assistant: "You put your passport in the blue folder inside the desk drawer."
 
 <a id="vii-reminders-and-delivery"></a>
 
-## 07 · Reminders & spoken delivery
+## 08 · Reminders & spoken delivery
 
 Reminders are saved with concrete ISO timestamps and real scheduled dates.
 
@@ -251,7 +262,7 @@ Reminders are saved with concrete ISO timestamps and real scheduled dates.
 
 <a id="viii-privacy"></a>
 
-## 08 · Privacy & data sovereignty
+## 09 · Privacy & data sovereignty
 
 Ranti's value rests entirely on trust. We state our technical boundaries plainly:
 
@@ -268,7 +279,7 @@ Ranti's value rests entirely on trust. We state our technical boundaries plainly
 
 <a id="ix-the-decisions"></a>
 
-## 09 · Engineering decisions
+## 10 · Engineering decisions
 
 Key architectural decisions made across the codebase:
 
@@ -335,7 +346,7 @@ To prevent monolithic files and maintain modular readability, every file in `src
 
 <a id="x-judging-rubric"></a>
 
-## 10 · Judging rubric alignment
+## 11 · Judging rubric alignment
 
 This project was built for the **Meta Global AI Developer Hackathon**. Here is how Ranti addresses each evaluation stage and scoring dimension:
 
@@ -353,7 +364,7 @@ This project was built for the **Meta Global AI Developer Hackathon**. Here is h
 
 <a id="xi-the-map"></a>
 
-## 11 · Repository map
+## 12 · Repository map
 
 4,487 lines of TypeScript across `src/`.
 
@@ -423,7 +434,7 @@ src/
 
 <a id="xii-running-it"></a>
 
-## 12 · Run locally
+## 13 · Run locally
 
 Node 20+, pnpm (or bun/npm), and the **Expo Go** app on an Android device or emulator.
 
@@ -464,7 +475,7 @@ Scan the QR code with the **Expo Go** app on your Android device, or press `a` t
 
 <a id="xiii-what-is-true-and-what-is-not"></a>
 
-## 13 · What works today
+## 14 · What works today
 
 This is the repository's recorded verification status. Everything below has been verified on a physical Android device running Expo SDK 57.
 
