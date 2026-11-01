@@ -35,5 +35,5 @@
     "ListHeaderComponentClassName"
   ],
   "tailwindCSS.classFunctions": ["useResolveClassNames"],
-  "cSpell.words": ["firestore"]
+  "cSpell.words": ["firestore", "Ranti"]
 }
