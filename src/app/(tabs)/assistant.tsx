@@ -400,11 +400,6 @@ export default function AssistantScreen() {
             )}
           </TouchableOpacity>
         </View>
-        <Text className="text-center text-xs text-muted mt-2">
-          {isDictating
-            ? "Tap the red stop button to complete dictation."
-            : "Tap the mic to dictate speech into the message box."}
-        </Text>
       </View>
     </SafeAreaView>
   );
