@@ -8,6 +8,11 @@
 </p>
 
 <p align="center">
+  Built during the <strong>Meta Global AI Developer Hackathon</strong><br>
+  <strong>October 27 – November 3</strong>
+</p>
+
+<p align="center">
   <a href="#xii-running-it">Run locally</a>
   &nbsp; · &nbsp;
   <a href="#iii-meta-models">Meta models</a>
@@ -24,18 +29,6 @@
 </p>
 
 ![Project Cover](https://i.ibb.co/4nxB9YKD/Design-Ranti-brand-banner-818bf499.jpg)
-
----
-
-<a id="demo"></a>
-
-## 03 · Demo & download
-
-![Ranti demo](./assets/demo.gif)
-
-**[Download the Android APK](YOUR_APK_DOWNLOAD_URL)**
-
----
 
 Memory capture is **one continuous loop**: listen to spoken thoughts, stream chunks to Meta's Cloud API, enforce strict structured schemas, and persist memories, tasks, reminders, and events into Cloud Firestore with temporal grounding.
 
@@ -109,6 +102,14 @@ When you speak to Ranti, you never organize folders, configure tags, or manually
 - **Strict schema boundaries.** Freeform prose extraction is banned. `muse-spark-1.3` returns schema-enforced JSON conforming to strict types. Memories belong strictly to UI-supported categories (`People`, `Plans`, `Notes`, `General`); tasks have booleans; reminders have resolvable deadlines.
 - **Temporal grounding without invention.** Relative phrases like *"take morning medicine tomorrow"* are anchored to the device&apos;s actual ISO datetime and timezone. If the speaker did not mention a specific time, Ranti does not invent one — it saves a task or note rather than hallucinating an alarm.
 - **Attribution or silence (Anti-confabulation).** When asked *"Where did I put my keys?"*, the Assistant checks real user memories. If found, it answers and provides a verified, tappable source chip. If absent, it states plainly: *"I don&apos;t have a record of that."* It never fabricates answers to appease the user.
+
+<a id="demo"></a>
+
+## 03 · Demo & download
+
+![Ranti demo](./assets/demo.gif)
+
+**[Download the Android APK](YOUR_APK_DOWNLOAD_URL)**
 
 ---
 
