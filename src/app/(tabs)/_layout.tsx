@@ -71,6 +71,7 @@ export default function TabLayout() {
           key={tab.name}
           name={tab.name}
           options={{
+            href: tab.name === "memories" ? "/(tabs)/memories" : undefined,
             tabBarStyle: {
               padding: 14,
             },

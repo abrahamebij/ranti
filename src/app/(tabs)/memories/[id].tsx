@@ -56,11 +56,14 @@ export default function MemoryDetailScreen() {
               await deleteMemory(id as string);
               router.back();
             } catch {
-              Alert.alert("Error", "Could not delete this memory. Please try again.");
+              Alert.alert(
+                "Error",
+                "Could not delete this memory. Please try again.",
+              );
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -68,7 +71,10 @@ export default function MemoryDetailScreen() {
     if (!editTitle.trim()) return;
     setIsSaving(true);
     try {
-      await updateMemory({ id: id as string, patch: { title: editTitle.trim(), content: editContent.trim() } });
+      await updateMemory({
+        id: id as string,
+        patch: { title: editTitle.trim(), content: editContent.trim() },
+      });
       setEditVisible(false);
     } catch {
       Alert.alert("Error", "Could not update this memory. Please try again.");
@@ -82,15 +88,16 @@ export default function MemoryDetailScreen() {
       style={{ flex: 1, backgroundColor: colors.background, paddingTop: 8 }}
       edges={["top"]}
     >
-      {/* Back header */}
-      <TouchableOpacity
-        onPress={() => router.back()}
-        activeOpacity={0.7}
-        className="flex-row items-center gap-1 px-5 pt-2 pb-1"
-      >
-        <Ionicons name="arrow-back" size={18} color={colors.muted} />
-        <Text className="text-sm text-muted">Memories</Text>
-      </TouchableOpacity>
+      <View className="flex-row items-center justify-between px-5 pt-2 pb-1">
+        <TouchableOpacity
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+          className="flex-row items-center gap-1"
+        >
+          <Ionicons name="arrow-back" size={18} color={colors.muted} />
+          <Text className="text-sm text-muted">Memories</Text>
+        </TouchableOpacity>
+      </View>
 
       {!memory ? (
         <View className="flex-1 items-center justify-center px-6">
@@ -143,7 +150,8 @@ export default function MemoryDetailScreen() {
                 </Text>
               </View>
               <Text className="text-xs text-muted">
-                {memory.sourceTimestamp || new Date(memory.createdAt).toLocaleDateString()}
+                {memory.sourceTimestamp ||
+                  new Date(memory.createdAt).toLocaleDateString()}
               </Text>
             </View>
 
@@ -155,7 +163,9 @@ export default function MemoryDetailScreen() {
                 </Text>
                 <View className="flex-row items-center gap-2">
                   <Ionicons name="mic-outline" size={14} color={colors.muted} />
-                  <Text className="text-xs text-muted">From your conversation</Text>
+                  <Text className="text-xs text-muted">
+                    From your conversation
+                  </Text>
                 </View>
               </Card>
             </View>
@@ -167,7 +177,10 @@ export default function MemoryDetailScreen() {
                   People mentioned
                 </Text>
                 {memory.people.map((p) => (
-                  <View key={p.name} className="flex-row items-center gap-3 mb-2">
+                  <View
+                    key={p.name}
+                    className="flex-row items-center gap-3 mb-2"
+                  >
                     <View className="w-10 h-10 rounded-full bg-tag-bg items-center justify-center">
                       <Text className="text-sm font-semibold text-tag-text">
                         {p.name[0]}
@@ -214,8 +227,14 @@ export default function MemoryDetailScreen() {
                   onPress={openEdit}
                   className="flex-row items-center gap-3 py-3"
                 >
-                  <Ionicons name="pencil-outline" size={20} color={colors.foreground} />
-                  <Text className="text-base text-foreground">Edit title &amp; content</Text>
+                  <Ionicons
+                    name="pencil-outline"
+                    size={20}
+                    color={colors.foreground}
+                  />
+                  <Text className="text-base text-foreground">
+                    Edit title &amp; content
+                  </Text>
                 </TouchableOpacity>
                 <View className="h-px bg-border" />
                 <TouchableOpacity
@@ -223,7 +242,9 @@ export default function MemoryDetailScreen() {
                   className="flex-row items-center gap-3 py-3"
                 >
                   <Ionicons name="trash-outline" size={20} color="#b91c1c" />
-                  <Text className="text-base" style={{ color: "#b91c1c" }}>Delete memory</Text>
+                  <Text className="text-base" style={{ color: "#b91c1c" }}>
+                    Delete memory
+                  </Text>
                 </TouchableOpacity>
                 <View className="h-px bg-border" />
                 <TouchableOpacity
@@ -240,9 +261,13 @@ export default function MemoryDetailScreen() {
           <Modal visible={editVisible} transparent animationType="slide">
             <View className="flex-1 bg-black/50 justify-end">
               <View className="bg-surface rounded-t-3xl px-6 pt-6 pb-10 gap-4">
-                <Text className="text-lg font-bold text-foreground">Edit memory</Text>
+                <Text className="text-lg font-bold text-foreground">
+                  Edit memory
+                </Text>
                 <View>
-                  <Text className="text-xs font-medium text-muted mb-1">Title</Text>
+                  <Text className="text-xs font-medium text-muted mb-1">
+                    Title
+                  </Text>
                   <TextInput
                     value={editTitle}
                     onChangeText={setEditTitle}
@@ -253,7 +278,9 @@ export default function MemoryDetailScreen() {
                   />
                 </View>
                 <View>
-                  <Text className="text-xs font-medium text-muted mb-1">Content</Text>
+                  <Text className="text-xs font-medium text-muted mb-1">
+                    Content
+                  </Text>
                   <TextInput
                     value={editContent}
                     onChangeText={setEditContent}
@@ -281,9 +308,14 @@ export default function MemoryDetailScreen() {
                     style={{ opacity: isSaving || !editTitle.trim() ? 0.5 : 1 }}
                   >
                     {isSaving ? (
-                      <ActivityIndicator size="small" color={colors.primaryForeground} />
+                      <ActivityIndicator
+                        size="small"
+                        color={colors.primaryForeground}
+                      />
                     ) : (
-                      <Text className="text-sm font-semibold text-primary-foreground">Save</Text>
+                      <Text className="text-sm font-semibold text-primary-foreground">
+                        Save
+                      </Text>
                     )}
                   </TouchableOpacity>
                 </View>
