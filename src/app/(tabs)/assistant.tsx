@@ -1,4 +1,11 @@
 import { Ionicons } from "@react-native-vector-icons/ionicons";
+import {
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioStream,
+} from "expo-audio";
+import { Image } from "expo-image";
+import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -9,18 +16,15 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router, useLocalSearchParams } from "expo-router";
-import {
-  useAudioStream,
-  requestRecordingPermissionsAsync,
-  setAudioModeAsync,
-} from "expo-audio";
 import { useChat } from "../../hooks/useChat";
 import { useMemories } from "../../hooks/useMemories";
-import { MetaRealtimeAsrSession } from "../../services/metaRealtimeAsr";
 import { colors } from "../../lib/colors";
+import { MetaRealtimeAsrSession } from "../../services/metaRealtimeAsr";
 export default function AssistantScreen() {
-  const params = useLocalSearchParams<{ memoryId?: string; memoryTitle?: string }>();
+  const params = useLocalSearchParams<{
+    memoryId?: string;
+    memoryTitle?: string;
+  }>();
   const [input, setInput] = useState("");
   const [isDictating, setIsDictating] = useState(false);
   const [dictationStatus, setDictationStatus] = useState<string | null>(null);
@@ -32,7 +36,10 @@ export default function AssistantScreen() {
   const handledParamRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (params.memoryTitle && handledParamRef.current !== (params.memoryId || params.memoryTitle)) {
+    if (
+      params.memoryTitle &&
+      handledParamRef.current !== (params.memoryId || params.memoryTitle)
+    ) {
       handledParamRef.current = params.memoryId || params.memoryTitle;
       setInput(`What do my notes say about ${params.memoryTitle}?`);
     }
@@ -64,7 +71,10 @@ export default function AssistantScreen() {
         return;
       }
 
-      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
+      });
 
       const session = new MetaRealtimeAsrSession({
         audioEncoding: "PCM_16KHZ",
@@ -86,7 +96,9 @@ export default function AssistantScreen() {
       setDictationStatus("Listening... tap mic to finish");
       await stream.start();
     } catch (err) {
-      setDictationStatus(`Failed: ${err instanceof Error ? err.message : String(err)}`);
+      setDictationStatus(
+        `Failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
       setIsDictating(false);
     }
   };
@@ -109,7 +121,9 @@ export default function AssistantScreen() {
         setDictationStatus(null);
       }
     } catch (err) {
-      setDictationStatus(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      setDictationStatus(
+        `Error: ${err instanceof Error ? err.message : String(err)}`,
+      );
       setIsDictating(false);
     }
   };
@@ -137,17 +151,12 @@ export default function AssistantScreen() {
       style={{ flex: 1, backgroundColor: colors.background }}
       edges={["top"]}
     >
-      <View className="flex-row items-center justify-between px-5 pt-3 pb-4">
-        <View className="w-8" />
-        <View className="items-center">
-          <Text className="text-lg font-bold text-primary">Ranti</Text>
-          <Text className="text-[11px] text-muted">A little more to remember.</Text>
-        </View>
-        <View className="w-8 h-8 rounded-full bg-surface items-center justify-center">
-          <View className="w-2 h-2 rounded-full bg-active-dot" />
-        </View>
+      <View className="items-center py-4">
+        <Text className="text-lg font-bold text-primary">Ranti</Text>
+        <Text className="text-[11px] text-muted">
+          A little more to remember.
+        </Text>
       </View>
-
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 16 }}
@@ -162,7 +171,8 @@ export default function AssistantScreen() {
               What can I help you remember?
             </Text>
             <Text className="text-sm text-muted text-center px-8 mt-3">
-              Ask naturally. I&apos;ll look through your saved memories and give you a grounded answer.
+              Ask naturally. I&apos;ll look through your saved memories and give
+              you a grounded answer.
             </Text>
 
             <View className="flex-row flex-wrap justify-between mt-8">
@@ -175,7 +185,9 @@ export default function AssistantScreen() {
                 >
                   <View className="w-8 h-8 rounded-xl bg-surface-muted items-center justify-center mb-3">
                     <Ionicons
-                      name={index === 0 ? "sparkles-outline" : "calendar-outline"}
+                      name={
+                        index === 0 ? "sparkles-outline" : "calendar-outline"
+                      }
                       size={17}
                       color={colors.primary}
                     />
@@ -192,10 +204,16 @@ export default function AssistantScreen() {
               <View className="flex-row items-end h-14">
                 <View className="w-12 h-10 rounded-2xl bg-surface-muted rotate-[-8deg]" />
                 <View className="w-14 h-14 rounded-2xl bg-primary/15 rotate-[8deg] -ml-4 items-center justify-center">
-                  <Ionicons name="chatbubble-ellipses-outline" size={25} color={colors.primary} />
+                  <Ionicons
+                    name="chatbubble-ellipses-outline"
+                    size={25}
+                    color={colors.primary}
+                  />
                 </View>
               </View>
-              <Text className="text-xs text-muted mt-4">Start a conversation whenever you&apos;re ready.</Text>
+              <Text className="text-xs text-muted mt-4">
+                Start a conversation whenever you&apos;re ready.
+              </Text>
             </View>
           </View>
         ) : (
@@ -204,18 +222,25 @@ export default function AssistantScreen() {
               msg.sender === "user" ? (
                 <View key={msg.id} className="items-end mb-4">
                   <View className="bg-surface-muted rounded-2xl rounded-tr-sm px-4 py-3 max-w-[84%]">
-                    <Text className="text-sm leading-5 text-foreground">{msg.text}</Text>
+                    <Text className="text-sm leading-5 text-foreground">
+                      {msg.text}
+                    </Text>
                   </View>
                 </View>
               ) : (
                 <View key={msg.id} className="mb-7">
                   <View className="flex-row items-center gap-2 mb-2">
-                    <View className="w-6 h-6 rounded-full bg-primary/15 items-center justify-center">
-                      <Ionicons name="sparkles" size={12} color={colors.primary} />
-                    </View>
-                    <Text className="text-xs font-semibold text-foreground-secondary">Ranti</Text>
+                    <Image
+                      source={require("../../../assets/images/logo.png")}
+                      className="w-6 h-6 rounded-full"
+                    />
+                    <Text className="text-xs font-semibold text-foreground-secondary">
+                      Ranti
+                    </Text>
                   </View>
-                  <Text className="text-base leading-6 text-foreground">{msg.text}</Text>
+                  <Text className="text-base leading-6 text-foreground">
+                    {msg.text}
+                  </Text>
                   {msg.sources && msg.sources.length > 0 ? (
                     <View className="flex-row flex-wrap gap-2 mt-3">
                       {msg.sources.map((src) => (
@@ -224,7 +249,9 @@ export default function AssistantScreen() {
                           activeOpacity={0.7}
                           onPress={() => {
                             if (src.type === "memory") {
-                              router.push(`/(tabs)/memories/${src.id}` as never);
+                              router.push(
+                                `/(tabs)/memories/${src.id}` as never,
+                              );
                             }
                           }}
                           className="flex-row items-center gap-1.5 bg-surface-muted px-3 py-1.5 rounded-full border border-border"
@@ -234,19 +261,26 @@ export default function AssistantScreen() {
                               src.type === "task"
                                 ? "checkbox-outline"
                                 : src.type === "reminder"
-                                ? "alarm-outline"
-                                : src.type === "event"
-                                ? "calendar-outline"
-                                : "layers-outline"
+                                  ? "alarm-outline"
+                                  : src.type === "event"
+                                    ? "calendar-outline"
+                                    : "layers-outline"
                             }
                             size={13}
                             color={colors.primary}
                           />
-                          <Text className="text-xs text-primary font-medium" numberOfLines={1}>
+                          <Text
+                            className="text-xs text-primary font-medium"
+                            numberOfLines={1}
+                          >
                             From {src.title}
                           </Text>
                           {src.type === "memory" && (
-                            <Ionicons name="chevron-forward" size={12} color={colors.primary} />
+                            <Ionicons
+                              name="chevron-forward"
+                              size={12}
+                              color={colors.primary}
+                            />
                           )}
                         </TouchableOpacity>
                       ))}
@@ -256,20 +290,30 @@ export default function AssistantScreen() {
                       activeOpacity={0.7}
                       onPress={() => {
                         if (msg.sourceMemoryId) {
-                          router.push(`/(tabs)/memories/${msg.sourceMemoryId}` as never);
+                          router.push(
+                            `/(tabs)/memories/${msg.sourceMemoryId}` as never,
+                          );
                         }
                       }}
                       className="flex-row items-center gap-1 mt-3"
                     >
-                      <Ionicons name="layers-outline" size={14} color={colors.primary} />
+                      <Ionicons
+                        name="layers-outline"
+                        size={14}
+                        color={colors.primary}
+                      />
                       <Text className="text-sm text-primary font-medium">
                         From {msg.sourceMemoryTitle}
                       </Text>
-                      <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+                      <Ionicons
+                        name="chevron-forward"
+                        size={14}
+                        color={colors.primary}
+                      />
                     </TouchableOpacity>
                   ) : null}
                 </View>
-              )
+              ),
             )}
           </View>
         )}
@@ -277,7 +321,9 @@ export default function AssistantScreen() {
         {isThinking && (
           <View className="flex-row items-center gap-2 mb-4">
             <ActivityIndicator size="small" color={colors.primary} />
-            <Text className="text-sm text-muted">Ranti is checking memories...</Text>
+            <Text className="text-sm text-muted">
+              Ranti is checking memories...
+            </Text>
           </View>
         )}
 
@@ -285,20 +331,25 @@ export default function AssistantScreen() {
           <View className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
             <View className="flex-row items-center gap-2 mb-1">
               <Ionicons name="alert-circle" size={16} color="#b91c1c" />
-              <Text className="text-xs font-semibold text-red-700">Unable to get answer</Text>
+              <Text className="text-xs font-semibold text-red-700">
+                Unable to get answer
+              </Text>
             </View>
             <Text className="text-xs text-red-600">
-              {error instanceof Error ? error.message : "Something went wrong fetching the answer. Please try again."}
+              {error instanceof Error
+                ? error.message
+                : "Something went wrong fetching the answer. Please try again."}
             </Text>
           </View>
         )}
-
       </ScrollView>
 
       {/* Dictation Status Banner */}
       {dictationStatus && (
         <View className="px-5 py-1">
-          <Text className="text-xs text-primary font-medium">{dictationStatus}</Text>
+          <Text className="text-xs text-primary font-medium">
+            {dictationStatus}
+          </Text>
         </View>
       )}
 
@@ -311,7 +362,9 @@ export default function AssistantScreen() {
             onChangeText={setInput}
             onSubmitEditing={() => handleSend()}
             returnKeyType="send"
-            placeholder={isDictating ? "Listening... speak now" : "Ask or tell Ranti..."}
+            placeholder={
+              isDictating ? "Listening... speak now" : "Ask or tell Ranti..."
+            }
             placeholderTextColor={colors.muted}
             className="flex-1 py-3 text-sm text-foreground"
           />
@@ -331,9 +384,17 @@ export default function AssistantScreen() {
             className="w-10 h-10 rounded-full items-center justify-center"
           >
             {input.trim() ? (
-              <Ionicons name="arrow-up" size={18} color={colors.primaryForeground} />
+              <Ionicons
+                name="arrow-up"
+                size={18}
+                color={colors.primaryForeground}
+              />
             ) : isDictating ? (
-              <Ionicons name="stop" size={18} color={colors.primaryForeground} />
+              <Ionicons
+                name="stop"
+                size={18}
+                color={colors.primaryForeground}
+              />
             ) : (
               <Ionicons name="mic" size={18} color={colors.primaryForeground} />
             )}
