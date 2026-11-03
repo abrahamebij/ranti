@@ -1,17 +1,17 @@
+import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "../services/queryClient";
-import { ListeningProvider } from "../providers/ListeningProvider";
-import { userSettingsService } from "../services/userSettings";
-import { reminderScheduler } from "../services/reminderScheduler";
-import { storageService } from "../services/storage";
 import "../global.css";
 import { colors } from "../lib/colors";
+import { ListeningProvider } from "../providers/ListeningProvider";
+import { queryClient } from "../services/queryClient";
+import { reminderScheduler } from "../services/reminderScheduler";
+import { storageService } from "../services/storage";
+import { userSettingsService } from "../services/userSettings";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -30,11 +30,14 @@ export default function RootLayout() {
           router.replace("/(tabs)/assistant");
         }
         // Reconcile pending reminders with scheduled notifications
-        storageService.getReminders().then((reminders) => {
-          reminderScheduler.reconcileReminders(reminders, (id, patch) =>
-            storageService.updateReminder(id, patch)
-          );
-        }).catch((err) => console.warn("Failed to reconcile reminders:", err));
+        storageService
+          .getReminders()
+          .then((reminders) => {
+            reminderScheduler.reconcileReminders(reminders, (id, patch) =>
+              storageService.updateReminder(id, patch),
+            );
+          })
+          .catch((err) => console.warn("Failed to reconcile reminders:", err));
       } catch (e) {
         console.warn("Failed to check onboarded status:", e);
       } finally {
@@ -59,7 +62,7 @@ export default function RootLayout() {
       <SafeAreaProvider
         style={{ flex: 1, backgroundColor: colors.background, paddingTop: 8 }}
       >
-        <StatusBar style="dark" />
+        <StatusBar style="light" />
         <ListeningProvider>
           <Stack
             screenOptions={{
