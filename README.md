@@ -15,6 +15,8 @@
 <p align="center">
   <a href="#xii-running-it">Run locally</a>
   &nbsp; · &nbsp;
+  <a href="#why-ranti-stands-out">Why Ranti</a>
+  &nbsp; · &nbsp;
   <a href="#iii-meta-models">Meta models</a>
   &nbsp; · &nbsp;
   <a href="#iv-the-shape">Architecture</a>
@@ -75,6 +77,19 @@ Traditional productivity apps and digital notebooks are built for tech-savvy kno
 1. **Zero-friction voice capture**: Speak naturally via push-to-talk dictation or ambient listening sessions without typing or screen navigation.
 2. **Autonomous structured extraction**: `muse-spark-1.3` listens and categorizes items automatically into memories, tasks, reminders, and calendar events with temporal grounding.
 3. **Reassuring, grounded recall**: When the user or a caregiver asks *"Where are my keys?"* or *"Who is visiting today?"*, Ranti answers calmly and truthfully, attributing every fact directly to a verified record.
+
+<a id="why-ranti-stands-out"></a>
+
+### Why Ranti stands out
+
+Ranti is not just a chatbot or a digital notebook. It is a voice-first memory system designed to capture meaningful moments before they are forgotten:
+
+- **Ambient listening mode**: Turn on one shared listening switch and let Ranti listen while the app is open. It streams speech to Meta&apos;s realtime transcription API, detects complete turns, and continuously processes them without requiring the user to tap record for every thought.
+- **Automatic memory organization**: Spoken conversation is transformed into separate memories, tasks, reminders, and calendar events instead of one unstructured transcript.
+- **Temporal grounding**: Phrases such as *"tomorrow afternoon"* are resolved using the device&apos;s current date and timezone, while uncertain times remain unset rather than being invented.
+- **Anti-confabulation recall**: Answers are generated only from retrieved records. Every supported answer can expose a tappable source, and missing evidence produces an honest refusal.
+- **Resilient voice pipeline**: Rolling buffers, duplicate protection, serialized extraction, and realtime-session reconnection help prevent lost or repeated memories.
+- **Trust by design**: Cloud processing is disclosed clearly, errors are surfaced instead of hidden, and the user can erase their stored data from Settings.
 
 ---
 
@@ -474,6 +489,7 @@ This is the repository's recorded verification status. Everything below has been
 
 | Capability | Observed behavior |
 | :--- | :--- |
+| **Ambient Listening Mode** | Turning on Background listening keeps a shared app-level microphone session active while Ranti is open, streams speech to realtime ASR, detects complete turns, and sends them through structured extraction automatically. |
 | **Microphone Sound Check** | Live sound test in `voice-setup.tsx` requests microphone permissions, renders live audio metering bars, records a real local M4A sample, and enables playback. |
 | **Assistant Dictation** | Tapping the mic button in Assistant records audio, transcribes it via Meta's API, and automatically populates the chat input with recording/transcribing indicators. |
 | **Schema Extraction** | Spoken phrases are parsed by `muse-spark-1.3` into structured JSON matching strict schemas (`memories`, `tasks`, `reminders`, `events`). |
@@ -488,7 +504,7 @@ This is the repository's recorded verification status. Everything below has been
 <details>
 <summary><strong>Built, not observed end to end</strong></summary>
 
-- **Continuous 24/7 background audio**: While the audio session architecture supports continuous listening, mobile OS battery optimization (Android Doze mode) may throttle background audio capture when the app is suspended for prolonged periods without a foreground service notification.
+- **24/7 listening while the app is suspended**: The ambient listening pipeline is designed for continuous use while Ranti is open, but Android may stop capture when the app is backgrounded or suspended because this build does not use a foreground audio service.
 - **Multi-speaker diarization**: When multiple people speak simultaneously, the model extracts the combined transcript facts without attributing distinct speaker identities.
 
 </details>
@@ -498,7 +514,7 @@ This is the repository's recorded verification status. Everything below has been
 
 - **No fake mock data**: Zero hardcoded demo personas ("Alex", "Maya") remain in user-facing flows. All views render real data, loading skeletons, or empty states.
 - **No silent error swallowing**: Firestore writes throw typed `StorageError` exceptions; no temporary fake IDs are generated on failure.
-- **No on-device AI claims**: All speech-to-text and reasoning APIs run over secure HTTPS via Meta Cloud APIs, as stated in the in-app privacy policy.
+- **No on-device AI claims**: All speech-to-text and reasoning APIs run through Meta Cloud APIs over HTTPS or secure WebSocket connections, as stated in the in-app privacy policy.
 - **No native build dependency**: Native push notifications (`expo-notifications`) were replaced with in-memory foreground timers and `expo-speech` to guarantee standard Expo Go compatibility.
 
 </details>
