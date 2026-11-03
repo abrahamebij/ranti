@@ -35,5 +35,6 @@
     "ListHeaderComponentClassName"
   ],
   "tailwindCSS.classFunctions": ["useResolveClassNames"],
-  "cSpell.words": ["firestore", "Ranti"]
+  "cSpell.words": ["firestore", "Ranti"],
+  "postman.settings.dotenv-detection-notification-visibility": false
 }

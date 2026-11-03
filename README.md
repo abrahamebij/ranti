@@ -24,10 +24,6 @@
   <a href="#xiii-what-is-true-and-what-is-not">What works today</a>
 </p>
 
-<p align="center">
-  <sub>ANDROID &nbsp; / &nbsp; EXPO SDK 57 &nbsp; / &nbsp; REACT NATIVE 0.86 &nbsp; / &nbsp; META MODEL API &nbsp; / &nbsp; CLOUD FIRESTORE</sub>
-</p>
-
 ![Project Cover](https://i.ibb.co/4nxB9YKD/Design-Ranti-brand-banner-818bf499.jpg)
 
 ## Contents — the product, the engineering, the evidence
