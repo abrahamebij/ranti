@@ -34,6 +34,7 @@ import {
   RealtimeTurnCompleteEvent,
 } from '../services/metaRealtimeAsr';
 import { processTranscript } from '../services/transcriptProcessor';
+import { storageService } from '../services/storage';
 
 export type ListeningStatus =
   | 'idle'
@@ -55,14 +56,9 @@ interface ListeningContextValue {
 
 const ListeningContext = createContext<ListeningContextValue | null>(null);
 
-const MIN_WORDS_TO_FLUSH = 14;
-const MAX_FLUSH_DELAY_MS = 20_000;
 const FINAL_FALLBACK_MS = 10_000;
 const MAX_BACKOFF_MS = 15_000;
-
-function wordCount(text: string): number {
-  return text.trim().split(/\s+/).filter(Boolean).length;
-}
+const TRANSCRIPT_FLUSH_INTERVAL_MS = 60_000;
 
 function KeepScreenAwake() {
   useKeepAwake('ranti-listening');
@@ -82,62 +78,80 @@ export function ListeningProvider({ children }: { children: ReactNode }) {
   const reconnectAttemptsRef = useRef(0);
 
   const seenTurnIdsRef = useRef<Set<string>>(new Set());
-  const turnBufferRef = useRef<string[]>([]);
   const finalsBufferRef = useRef<string[]>([]);
-  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const finalFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const queueRef = useRef<Promise<void>>(Promise.resolve());
+  const transcriptWriteQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const unsavedTranscriptsRef = useRef<string[]>([]);
+  const transcriptFlushIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isFlushingTranscriptsRef = useRef(false);
 
   const updateStatus = useCallback((next: ListeningStatus) => {
     statusRef.current = next;
     setStatus(next);
   }, []);
 
-  // ---- Extraction queue (serial, never drops a batch) ----------------------
+  // ---- Durable transcript buffer -------------------------------------------
 
-  const enqueueExtraction = useCallback((text: string) => {
+  const enqueueTranscript = useCallback((text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    setPendingJobs((n) => n + 1);
-    queueRef.current = queueRef.current.then(async () => {
+    transcriptWriteQueueRef.current = transcriptWriteQueueRef.current.then(async () => {
       try {
-        await processTranscript(trimmed);
+        await storageService.addPendingTranscript(trimmed);
       } catch (err) {
+        unsavedTranscriptsRef.current.push(trimmed);
         const msg = err instanceof Error ? err.message : String(err);
-        setLastError(`Couldn't save what I heard: ${msg}`);
-        console.error('[Listening] extraction failed:', err);
-      } finally {
-        setPendingJobs((n) => Math.max(0, n - 1));
+        setLastError(`Couldn't buffer what I heard: ${msg}`);
+        console.error('[Listening] transcript buffer failed:', err);
       }
     });
   }, []);
 
-  const flushTurnBuffer = useCallback(() => {
-    if (flushTimerRef.current) {
-      clearTimeout(flushTimerRef.current);
-      flushTimerRef.current = null;
-    }
-    if (turnBufferRef.current.length === 0) return;
-    const text = turnBufferRef.current.join(' ');
-    turnBufferRef.current = [];
-    enqueueExtraction(text);
-  }, [enqueueExtraction]);
+  const flushPendingTranscripts = useCallback(async () => {
+    if (isFlushingTranscriptsRef.current) return;
+    isFlushingTranscriptsRef.current = true;
+    try {
+      const unsaved = unsavedTranscriptsRef.current.splice(0);
+      unsaved.forEach((text) => enqueueTranscript(text));
+      await transcriptWriteQueueRef.current;
 
-  const pushTurn = useCallback(
-    (text: string) => {
-      const trimmed = text.trim();
-      if (!trimmed) return;
-      turnBufferRef.current.push(trimmed);
-      if (wordCount(turnBufferRef.current.join(' ')) >= MIN_WORDS_TO_FLUSH) {
-        flushTurnBuffer();
-        return;
+      const pending = await storageService.getPendingTranscripts();
+      for (const transcript of pending) {
+        setPendingJobs((n) => n + 1);
+        try {
+          await processTranscript(transcript.text);
+          await storageService.deletePendingTranscript(transcript.id);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          setLastError(`Couldn't process buffered transcript: ${msg}`);
+          console.error('[Listening] buffered transcript failed:', err);
+          break;
+        } finally {
+          setPendingJobs((n) => Math.max(0, n - 1));
+        }
       }
-      if (!flushTimerRef.current) {
-        flushTimerRef.current = setTimeout(flushTurnBuffer, MAX_FLUSH_DELAY_MS);
-      }
-    },
-    [flushTurnBuffer]
-  );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setLastError(`Couldn't read buffered transcripts: ${msg}`);
+      console.error('[Listening] transcript flush failed:', err);
+    } finally {
+      isFlushingTranscriptsRef.current = false;
+    }
+  }, [enqueueTranscript]);
+
+  const startTranscriptFlushTimer = useCallback(() => {
+    if (transcriptFlushIntervalRef.current) return;
+    transcriptFlushIntervalRef.current = setInterval(() => {
+      void flushPendingTranscripts();
+    }, TRANSCRIPT_FLUSH_INTERVAL_MS);
+  }, [flushPendingTranscripts]);
+
+  const stopTranscriptFlushTimer = useCallback(() => {
+    if (transcriptFlushIntervalRef.current) {
+      clearInterval(transcriptFlushIntervalRef.current);
+      transcriptFlushIntervalRef.current = null;
+    }
+  }, []);
 
   const clearFinalFallback = useCallback(() => {
     if (finalFallbackTimerRef.current) {
@@ -152,17 +166,17 @@ export function ListeningProvider({ children }: { children: ReactNode }) {
     (evt: RealtimeTranscriptEvent) => {
       // Only finalized segments matter; partials are cumulative previews.
       if (!evt.final || !evt.transcript?.trim()) return;
-      finalsBufferRef.current.push(evt.transcript.trim());
+      finalsBufferRef.current = [evt.transcript.trim()];
       // Safety net: if the whole-turn event never arrives, use the finals.
       clearFinalFallback();
       finalFallbackTimerRef.current = setTimeout(() => {
         if (finalsBufferRef.current.length > 0) {
-          pushTurn(finalsBufferRef.current.join(' '));
+          enqueueTranscript(finalsBufferRef.current.join(' '));
           finalsBufferRef.current = [];
         }
       }, FINAL_FALLBACK_MS);
     },
-    [clearFinalFallback, pushTurn]
+    [clearFinalFallback, enqueueTranscript]
   );
 
   const handleTurnComplete = useCallback(
@@ -174,9 +188,9 @@ export function ListeningProvider({ children }: { children: ReactNode }) {
       if (seenTurnIdsRef.current.has(id)) return;
       seenTurnIdsRef.current.add(id);
       if (seenTurnIdsRef.current.size > 200) seenTurnIdsRef.current.clear();
-      pushTurn(evt.transcript ?? '');
+      enqueueTranscript(evt.transcript ?? '');
     },
-    [clearFinalFallback, pushTurn]
+    [clearFinalFallback, enqueueTranscript]
   );
 
   // ---- Microphone stream ----------------------------------------------------
@@ -285,11 +299,13 @@ export function ListeningProvider({ children }: { children: ReactNode }) {
 
       wantListeningRef.current = true;
       reconnectAttemptsRef.current = 0;
+      startTranscriptFlushTimer();
       await openSession();
       await stream.start();
       updateStatus('listening');
     } catch (err) {
       wantListeningRef.current = false;
+      stopTranscriptFlushTimer();
       sessionRef.current?.close();
       sessionRef.current = null;
       try {
@@ -299,7 +315,7 @@ export function ListeningProvider({ children }: { children: ReactNode }) {
       setLastError(`Couldn't start listening: ${msg}`);
       updateStatus('error');
     }
-  }, [openSession, stream, updateStatus]);
+  }, [openSession, startTranscriptFlushTimer, stopTranscriptFlushTimer, stream, updateStatus]);
 
   const stop = useCallback(async () => {
     wantListeningRef.current = false;
@@ -320,16 +336,22 @@ export function ListeningProvider({ children }: { children: ReactNode }) {
       session.close();
     }
 
-    // Use anything still held, then wait for saves to finish.
+    // Persist any final server events, but leave processing to the one-minute timer.
     if (finalsBufferRef.current.length > 0) {
-      pushTurn(finalsBufferRef.current.join(' '));
+      enqueueTranscript(finalsBufferRef.current.join(' '));
       finalsBufferRef.current = [];
     }
     clearFinalFallback();
-    flushTurnBuffer();
-    await queueRef.current;
+    await transcriptWriteQueueRef.current;
     updateStatus('idle');
-  }, [clearFinalFallback, flushTurnBuffer, pushTurn, stream, updateStatus]);
+  }, [
+    clearFinalFallback,
+    enqueueTranscript,
+    startTranscriptFlushTimer,
+    stopTranscriptFlushTimer,
+    stream,
+    updateStatus,
+  ]);
 
   // ---- Background / foreground handling ------------------------------------
 
@@ -360,11 +382,11 @@ export function ListeningProvider({ children }: { children: ReactNode }) {
     return () => {
       wantListeningRef.current = false;
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-      if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+      stopTranscriptFlushTimer();
       if (finalFallbackTimerRef.current) clearTimeout(finalFallbackTimerRef.current);
       sessionRef.current?.close();
     };
-  }, []);
+  }, [stopTranscriptFlushTimer]);
 
   const isListening =
     status === 'starting' || status === 'listening' || status === 'reconnecting';

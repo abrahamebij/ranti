@@ -10,7 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { defaultUserId } from './firebaseConfig';
-import { Memory, Task, Reminder, CalendarEvent, ChatMessage } from '../types';
+import { Memory, Task, Reminder, CalendarEvent, ChatMessage, PendingTranscript } from '../types';
 
 export class StorageError extends Error {
   constructor(message: string, public readonly collectionName: string, public readonly originalError?: unknown) {
@@ -45,6 +45,47 @@ function cleanRecord<T extends Record<string, unknown>>(data: T): Record<string,
 }
 
 export const storageService = {
+  // Pending ambient transcripts
+  async getPendingTranscripts(): Promise<PendingTranscript[]> {
+    if (!db) throw new StorageError('Firestore database not initialized', 'transcripts');
+    try {
+      const colRef = collection(db, 'users', defaultUserId, 'transcripts');
+      const q = query(colRef, orderBy('createdAt', 'asc'));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<PendingTranscript, 'id'>),
+      }));
+    } catch (e) {
+      throw new StorageError(`Failed to fetch pending transcripts: ${e instanceof Error ? e.message : String(e)}`, 'transcripts', e);
+    }
+  },
+
+  async addPendingTranscript(text: string): Promise<PendingTranscript> {
+    if (!db) throw new StorageError('Firestore database not initialized', 'transcripts');
+    const createdAt = new Date().toISOString();
+    try {
+      const colRef = collection(db, 'users', defaultUserId, 'transcripts');
+      const docRef = await addDoc(colRef, cleanRecord({
+        text: text.trim(),
+        createdAt,
+        userId: defaultUserId,
+      }));
+      return { id: docRef.id, text: text.trim(), createdAt };
+    } catch (e) {
+      throw new StorageError(`Failed to save pending transcript: ${e instanceof Error ? e.message : String(e)}`, 'transcripts', e);
+    }
+  },
+
+  async deletePendingTranscript(transcriptId: string): Promise<void> {
+    if (!db) throw new StorageError('Firestore database not initialized', 'transcripts');
+    try {
+      await deleteDoc(doc(db, 'users', defaultUserId, 'transcripts', transcriptId));
+    } catch (e) {
+      throw new StorageError(`Failed to delete pending transcript: ${e instanceof Error ? e.message : String(e)}`, 'transcripts', e);
+    }
+  },
+
   // Memories
   async getMemories(): Promise<Memory[]> {
     if (!db) throw new StorageError('Firestore database not initialized', 'memories');
@@ -331,7 +372,7 @@ export const storageService = {
 
   async deleteAllUserData(): Promise<void> {
     if (!db) throw new StorageError('Firestore database not initialized', 'all');
-    const collections = ['memories', 'tasks', 'reminders', 'events', 'chat'] as const;
+    const collections = ['memories', 'tasks', 'reminders', 'events', 'chat', 'transcripts'] as const;
     for (const col of collections) {
       try {
         const colRef = collection(db, 'users', defaultUserId, col);

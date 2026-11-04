@@ -76,6 +76,12 @@ export interface ChatMessage {
   sourceMemoryId?: string;
 }
 
+export interface PendingTranscript {
+  id: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface ExtractedInsights {
   memories: Array<Omit<Memory, 'id' | 'userId' | 'createdAt'>>;
   tasks: Array<Omit<Task, 'id' | 'userId' | 'createdAt'>>;
