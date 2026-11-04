@@ -3,13 +3,12 @@
 <h1 align="center">Ranti</h1>
 
 <p align="center">
-  <strong>A little more to remember.</strong><br>
-  Voice-first memory prosthetic built specifically for individuals living with Alzheimer&apos;s disease, dementia, and cognitive impairment. Powered by Meta Model API on Android.
+  Built during the <strong>Meta Global AI Developer Hackathon</strong><br>
+  <strong>October 27 – November 3</strong>
 </p>
 
 <p align="center">
-  Built during the <strong>Meta Global AI Developer Hackathon</strong><br>
-  <strong>October 27 – November 3</strong>
+  <strong>⚠️ Ranti is not a medical app and does not provide medical advice, diagnosis, or treatment.</strong>
 </p>
 
 <p align="center">
