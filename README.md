@@ -84,7 +84,7 @@ Traditional productivity apps and digital notebooks are built for tech-savvy kno
 
 Ranti is not just a chatbot or a digital notebook. It is a voice-first memory system designed to capture meaningful moments before they are forgotten:
 
-- **Ambient listening mode**: Turn on one shared listening switch and let Ranti listen while the app is open. It streams speech to Meta&apos;s realtime transcription API, detects complete turns, and continuously processes them without requiring the user to tap record for every thought.
+- **Ambient listening mode**: Turn on one shared listening switch and let Ranti listen while the app is open. It streams speech to Meta&apos;s realtime transcription API, writes completed turns to a durable transcript buffer, and sends the buffer to `muse-spark-1.3` every minute without requiring the user to tap record for every thought.
 - **Automatic memory organization**: Spoken conversation is transformed into separate memories, tasks, reminders, and calendar events instead of one unstructured transcript.
 - **Temporal grounding**: Phrases such as *"tomorrow afternoon"* are resolved using the device&apos;s current date and timezone, while uncertain times remain unset rather than being invented.
 - **Anti-confabulation recall**: Answers are generated only from retrieved records. Every supported answer can expose a tappable source, and missing evidence produces an honest refusal.
@@ -150,7 +150,7 @@ A mobile-first architecture built for low latency on Android.
 | **Mobile App** | Expo SDK 57 · React Native 0.86 · Expo Router | Native UI, file routing, audio recording, permissions |
 | **Inference Layer** | Meta Model API (`muse-voice-transcribe-1.0` & `muse-spark-1.3`) | Speech-to-text, structured extraction, grounded RAG recall |
 | **State & Cache** | TanStack React Query v5 | Optimistic UI updates, cache invalidation, query synchronization |
-| **Persistence** | Cloud Firestore | Realtime document storage (`memories`, `tasks`, `reminders`, `events`, `chat`) |
+| **Persistence** | Cloud Firestore | Durable document storage (`memories`, `tasks`, `reminders`, `events`, `chat`, `transcripts`) |
 | **Local Storage** | `expo-file-system` | Sound check samples, user settings, onboarded state |
 
 ```mermaid
@@ -166,7 +166,7 @@ flowchart TB
     subgraph cloud["Cloud Services · Meta Model API"]
         meta_asr["muse-voice-transcribe-1.0<br/>Speech-to-text transcription"]
         muse_spark["muse-spark-1.3<br/>Structured JSON extraction & Grounded RAG"]
-        firestore["Cloud Firestore<br/>Users, memories, tasks, reminders, chat"]
+        firestore["Cloud Firestore<br/>Users, memories, tasks, reminders, chat, transcripts"]
     end
 
     mic --> meta_asr
@@ -197,23 +197,34 @@ From spoken phrase to persisted database record with zero data loss.
 sequenceDiagram
     autonumber
     participant User as User Speech
-    participant Rec as audioRecorder
+    participant Rec as ListeningProvider
     participant MetaASR as muse-voice-transcribe-1.0
+    participant Buffer as Firestore transcript buffer
     participant Extractor as muse-spark-1.3 (Meta API)
     participant Storage as Cloud Firestore
     participant UI as TanStack Cache / UI
 
     User->>Rec: "Pick up dry cleaning tomorrow at 4pm"
-    Rec->>MetaASR: Stream audio chunk (HTTPS)
+    Rec->>MetaASR: Stream PCM audio (secure WebSocket)
     MetaASR-->>Extractor: Transcript text
+    Rec->>Buffer: Save completed transcript turn
+    Note over Buffer: One-minute flush interval
+    Buffer->>Extractor: Send pending transcript
     Note over Extractor: Injects current ISO timestamp + device timezone + rolling context
-    Extractor->>Extractor: Enforce JSON schema (Deduplicate & anchor relative time)
-    Extractor->>Storage: addReminder({ title, scheduledAt: "2026-11-01T16:00:00" })
+    Extractor->>Extractor: Enforce JSON schema, deduplicate & anchor relative time
+    Extractor->>Storage: Save structured entities
+    Buffer->>Buffer: Delete transcript only after successful extraction and writes
     Storage-->>UI: Real Firestore Document ID
     UI-->>User: Reminders tab updates optimistically
 ```
 
-### 1 · Rolling context deduplication
+### 1 · Durable transcript buffering
+
+Completed speech turns are first saved under `users/{userId}/transcripts`. This prevents a temporary model or network failure from discarding captured speech. A guarded one-minute timer reads pending transcripts in creation order and submits them to `muse-spark-1.3`.
+
+The original transcript remains available until the full extraction and persistence operation succeeds. Failed transcripts stay queued for the next processing cycle.
+
+### 2 · Rolling context deduplication
 
 Extracting audio in chunks risks saving the same memory multiple times if a thought spans a chunk boundary. `metaExtractor` maintains a rolling context window:
 
@@ -221,7 +232,7 @@ Extracting audio in chunks risks saving the same memory multiple times if a thou
 - The titles of recently extracted memories.
 - A deterministic similarity check on normalized content before writing to Firestore.
 
-### 2 · Honest error handling
+### 3 · Honest error handling
 
 `storage.ts` contains **zero fake fallback IDs**. When an item fails validation or a network connection drops:
 
@@ -276,7 +287,7 @@ Ranti's value rests entirely on trust. We state our technical boundaries plainly
 - **Cloud processing disclosure**: Audio is transmitted securely over HTTPS to Meta's Cloud API endpoints for speech recognition and extraction. **Ranti does not claim on-device processing.**
 - **First-use transparency**: A dedicated Privacy & Data notice is presented on first launch before onboarding, detailing what is recorded, where audio is processed, what is stored in Firestore, and how to delete it.
 - **Real "Delete all my data"**: In Settings, a dedicated destructive action permanently erases:
-  1. All user documents across `memories`, `tasks`, `reminders`, `events`, and `chat` collections in Cloud Firestore.
+  1. All user documents across `memories`, `tasks`, `reminders`, `events`, `chat`, and pending `transcripts` collections in Cloud Firestore.
   2. All local voice samples and settings files from `expo-file-system`.
   3. Clears in-memory TanStack query caches and routes back to a clean onboarding screen.
 
@@ -489,7 +500,7 @@ This is the repository's recorded verification status. Everything below has been
 
 | Capability | Observed behavior |
 | :--- | :--- |
-| **Ambient Listening Mode** | Turning on Background listening keeps a shared app-level microphone session active while Ranti is open, streams speech to realtime ASR, detects complete turns, and sends them through structured extraction automatically. |
+| **Ambient Listening Mode** | Turning on Background listening keeps a shared app-level microphone session active while Ranti is open, streams speech to realtime ASR, stores completed turns in Firestore, and flushes pending transcripts to structured extraction every minute. |
 | **Microphone Sound Check** | Live sound test in `voice-setup.tsx` requests microphone permissions, renders live audio metering bars, records a real local M4A sample, and enables playback. |
 | **Assistant Dictation** | Tapping the mic button in Assistant records audio, transcribes it via Meta's API, and automatically populates the chat input with recording/transcribing indicators. |
 | **Schema Extraction** | Spoken phrases are parsed by `muse-spark-1.3` into structured JSON matching strict schemas (`memories`, `tasks`, `reminders`, `events`). |
