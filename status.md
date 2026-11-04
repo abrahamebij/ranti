@@ -1,6 +1,6 @@
 # Ranti — Project Status
 
-Last Updated: 2026-10-29T19:26:00+01:00
+Last Updated: 2026-11-04T10:31:00+01:00
 Do not install anything, tell the user what to install
 
 ## 1. Project Overview & Target
@@ -166,20 +166,44 @@ Do not install anything, tell the user what to install
 
 ---
 
-## 3. Current Data Pipeline
+## 3. Recent Changes
+
+- [x] **Durable background listening transcript buffer (`src/providers/ListeningProvider.tsx`):**
+  - Finalized realtime ASR turns are written immediately to Firestore under `users/{userId}/transcripts`.
+  - A guarded one-minute interval sends pending transcripts through the existing `muse-spark-1.3` extraction pipeline.
+  - A transcript is deleted only after extraction and all entity writes succeed; failed items remain queued for the next cycle.
+  - Temporary Firestore write failures are retained in an in-memory retry queue and retried on the next flush.
+  - Listening stop/unmount no longer forces immediate model processing; it preserves buffered transcripts for the scheduled flush.
+- [x] **Pending transcript storage (`src/services/storage.ts` and `src/types/index.ts`):**
+  - Added typed `PendingTranscript` records with create, list, and delete operations.
+  - “Delete all my data” now also removes pending transcript documents.
+- [x] **Realtime transcript duplication fix (`src/app/api-check.tsx` and `src/app/(tabs)/assistant.tsx`):**
+  - Cumulative Meta partial transcript updates now replace the displayed value instead of being appended repeatedly.
+  - Assistant dictation preserves existing typed text while replacing only the active cumulative speech segment.
+- [x] **Standalone Memories library navigation (`src/app/(tabs)/_layout.tsx` and `src/app/(tabs)/memories/index.tsx`):**
+  - The Memories tab now resolves to the all-memories page by default.
+  - The page provides database-backed search, category filters, counts, and selectable memory cards.
+  - Individual memory details remain available after selecting a memory.
+- [x] **Assistant and README presentation updates:**
+  - Assistant received a cleaner chat-style empty state, suggestion cards, centered branding, improved message hierarchy, and a rounded composer without changing the existing theme colors.
+  - README now highlights ambient listening, structured extraction, temporal grounding, anti-confabulation, resilient voice handling, and privacy.
+
+---
+
+## 4. Current Data Pipeline
 
 ```text
 [Device Microphone]
        │
        ▼
-[useListeningSession.ts]
-       │ (rolling audio segment)
+[ListeningProvider.tsx]
+       │ (realtime transcript saved to durable buffer)
        ▼
-[muse-voice-transcribe-1.0] (POST /v1/asr/transcribe)
-       │ (turns transcript)
+[users/{userId}/transcripts]
+       │ (one-minute flush)
        ▼
-[muse-spark-1.3] (POST /v1/chat/completions)
-       │ (extracted structured insights)
+[muse-spark-1.3] (structured extraction)
+       │ (delete transcript only after success)
        ▼
 [Official Firestore SDK] ──▶ Cloud Firestore (users/{userId}/...)
        │
