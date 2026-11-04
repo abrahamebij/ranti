@@ -112,6 +112,9 @@ When you speak to Ranti, you never organize folders, configure tags, or manually
 
 **[Download the live Android APK for testing](https://github.com/abrahamebij/ranti/releases)**
 
+**[Watch Youtube Demo](https://www.youtube.com/watch?v=B8r5cXuP0vo
+)**
+
 ![Ranti demo](https://i.ibb.co/7xP8zhBb/download.gif)
 
 ---
