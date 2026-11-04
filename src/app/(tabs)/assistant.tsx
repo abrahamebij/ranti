@@ -34,6 +34,8 @@ export default function AssistantScreen() {
 
   const dictationSessionRef = useRef<MetaRealtimeAsrSession | null>(null);
   const handledParamRef = useRef<string | null>(null);
+  const dictationBaseInputRef = useRef("");
+  const dictationTranscriptRef = useRef("");
 
   useEffect(() => {
     if (
@@ -64,6 +66,8 @@ export default function AssistantScreen() {
 
   const startDictation = async () => {
     try {
+      dictationBaseInputRef.current = input.trim();
+      dictationTranscriptRef.current = "";
       setDictationStatus("Connecting...");
       const { granted } = await requestRecordingPermissionsAsync();
       if (!granted) {
@@ -81,7 +85,12 @@ export default function AssistantScreen() {
         mode: "PUSH_TO_TALK",
         onTranscript: (evt) => {
           if (evt.transcript) {
-            setInput((prev) => `${prev} ${evt.transcript}`.trim());
+            dictationTranscriptRef.current = evt.transcript.trim();
+            setInput(
+              [dictationBaseInputRef.current, dictationTranscriptRef.current]
+                .filter(Boolean)
+                .join(" "),
+            );
           }
         },
         onError: (err) => {
@@ -113,6 +122,8 @@ export default function AssistantScreen() {
         setTimeout(() => {
           dictationSessionRef.current?.close();
           dictationSessionRef.current = null;
+          dictationBaseInputRef.current = "";
+          dictationTranscriptRef.current = "";
           setDictationStatus(null);
           setIsDictating(false);
         }, 500);

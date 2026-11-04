@@ -77,7 +77,7 @@ export default function ApiCheckScreen() {
         mode: 'PUSH_TO_TALK',
         onTranscript: (evt: RealtimeTranscriptEvent) => {
           if (evt.transcript) {
-            setLiveTranscript((prev) => `${prev} ${evt.transcript}`.trim());
+            setLiveTranscript(evt.transcript.trim());
           }
         },
         onError: (err) => setLiveStatus(`Error: ${err.message}`),
